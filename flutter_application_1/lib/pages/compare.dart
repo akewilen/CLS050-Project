@@ -9,11 +9,16 @@ class ComparePage extends StatelessWidget {
   final Country topCountry;
   final Country bottomCountry;
 
+  final void Function() correctCallback;
+  final void Function() wrongCallback;
+
   const ComparePage({
     Key? key,
     required this.compareField,
     required this.topCountry,
     required this.bottomCountry,
+    required this.correctCallback,
+    required this.wrongCallback,
   }) : super(key: key);
 
   @override
@@ -61,13 +66,19 @@ class ComparePage extends StatelessWidget {
                         Text("population is", style: AppTheme.statisticTypeTextStyle, textAlign: TextAlign.center),
                         TextButton(
                           style: AppTheme.upperCompareButton,
-                          onPressed: () {},
+                          onPressed: () {
+                            var stats = (compareField == CountryField.population) ? (topCountry.population, bottomCountry.population) : (topCountry.forestedArea, bottomCountry.forestedArea);
+                            (stats.$1 < stats.$2) ? correctCallback() : wrongCallback();
+                          },
                           child: const Text('Higher'),
                         ),
                         const SizedBox(height: 8),
                         TextButton(
                           style: AppTheme.lowerCompareButton,
-                          onPressed: () {},
+                          onPressed: () {
+                            var stats = (compareField == CountryField.population) ? (topCountry.population, bottomCountry.population) : (topCountry.forestedArea, bottomCountry.forestedArea);
+                            (stats.$1 > stats.$2) ? correctCallback() : wrongCallback();
+                          },
                           child: const Text('Lower'),
                         ),
                       ],

@@ -8,6 +8,14 @@ void main() {
   runApp(const MyApp());
 }
 
+void correctPrint() {
+  print("You were correct!");
+}
+
+void wrongPrint() {
+  print("You were wrong!");
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -19,7 +27,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: ComparePage(compareField: CountryField.population, topCountry: swedenTest, bottomCountry: italyTest),
+      home: ComparePage(
+        compareField: CountryField.population,
+        topCountry: swedenTest,
+        bottomCountry: italyTest,
+        correctCallback: correctPrint,
+        wrongCallback: wrongPrint,
+      ),
     );
   }
 }

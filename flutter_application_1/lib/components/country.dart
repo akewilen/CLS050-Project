@@ -9,7 +9,7 @@ class Country {
 }
 
 final swedenTest = Country('Sweden', 10400000, 69.0);
-final italyTest = Country('Italy', 0, 30.0);
+final italyTest = Country('Italy',55000000, 30.0);
 
 enum CountryField {
   population,
