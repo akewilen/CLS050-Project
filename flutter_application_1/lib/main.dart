@@ -1,20 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/country.dart';
+import 'API.dart';
+import 'GameLogic.dart';
 
 // Project dependencies
 import 'package:flutter_application_1/pages/compare.dart';
 
-void main() {
+void main() async {
+
+  // Api key loading
+  WidgetsFlutterBinding.ensureInitialized();
+  await loadEnv();
+  print('API Key loaded: ${getApiKey() != null}');
+
+  //test a full game sequence (rounds + stats+ api)
+  //await GameLogic.testPrintAllRounds();
+
+  
   runApp(const MyApp());
 }
 
+
 void correctPrint() {
   print("You were correct!");
+
 }
 
 void wrongPrint() {
   print("You were wrong!");
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
