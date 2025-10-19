@@ -58,7 +58,20 @@ class GameLogic {
     }
   }
 
-  static Game? getCurrentGame() => _currentGame;
+  static Game? getCurrentGame() {
+    if (_currentGame != null) {
+      final game = _currentGame!;
+      final current = game.getCurrentCountry();
+      final next = game.getNextCountry();
+      print('\n=== Round ${game.currentRoundIndex + 1} ===');
+      print('Comparing: ${game.getCurrentStat()}');
+      print('${game.rounds[game.currentRoundIndex]} vs ${game.rounds[game.currentRoundIndex + 1]}');
+      print('Current values:');
+      print('- ${game.rounds[game.currentRoundIndex]}: ${_getStatValue(current, game.getCurrentStat())}');
+      print('- ${game.rounds[game.currentRoundIndex + 1]}: ${_getStatValue(next, game.getCurrentStat())}');
+    }
+    return _currentGame;
+  }
 
   static Future<bool> nextRound() async {
     if (_currentGame == null || !_currentGame!.hasNextRound()) {
@@ -71,6 +84,24 @@ class GameLogic {
 
   static void resetGame() {
     _currentGame = null;
+  }
+
+  static dynamic _getStatValue(CountryData? country, String statName) {
+    if (country == null) return 'N/A';
+    switch (statName) {
+      case 'Surface Area':
+        return country.surfaceArea;
+      case 'Population':
+        return country.population;
+      case 'CO2 Emissions':
+        return country.co2Emissions;
+      case 'Forested Area':
+        return country.forestedArea;
+      case 'GDP per Capita':
+        return country.gdpPerCapita;
+      default:
+        return 'Unknown stat';
+    }
   }
 
   static Future<void> testPrintAllRounds() async {
