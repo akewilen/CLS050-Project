@@ -3,6 +3,8 @@ import 'API.dart';
 import 'GameLogic.dart';
 import 'components/country.dart';
 import 'pages/comapre.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
 
@@ -14,7 +16,14 @@ void main() async {
   //test a full game sequence (rounds + stats+ api)
   //await GameLogic.testPrintAllRounds();
   await GameLogic.createGame();
-  
+
+  // Setting up firebase
+  // see: https://firebase.google.com/docs/flutter/setup?authuser=0&platform=ios
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MyApp());
 }
 
