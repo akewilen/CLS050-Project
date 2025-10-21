@@ -5,6 +5,9 @@ import 'components/country.dart';
 import 'pages/comapre.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'pages/home_screen.dart';
+import 'pages/score_screen.dart';
+
 
 void main() async {
 
