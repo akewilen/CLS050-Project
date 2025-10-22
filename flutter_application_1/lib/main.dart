@@ -3,6 +3,8 @@ import 'API.dart';
 import 'GameLogic.dart';
 import 'components/country.dart';
 import 'pages/comapre.dart';
+import 'pages/home_screen.dart';
+import 'pages/score_screen.dart';
 
 // Firebase imports
 import 'package:firebase_core/firebase_core.dart';
