@@ -112,6 +112,9 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home:
+      // Comment out this if you want to try out multiplayer, creating lobbies etc.
+      // HomeScreen(),
+      // Comment the ComparePage when testing the HomeScreen.
       ComparePage(
         compareField: compareField,
         topCountry: Country(
