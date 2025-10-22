@@ -1,36 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 
-// Important !! The list of countries and country names must be the same for GameLogic and MapGame
-
-//Can be initialized in main like this for example:
-/*
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: MapGame(preselectedIndex: 0 /*Abania*/, targetIndex: 4 /*Denmark*/),
-      //Container(height: 50, child: Text("Find Denmark")),
-    );
-  }
-*/
-
 class MapGame extends StatefulWidget {
   const MapGame({
     super.key,
-    required this.preselectedIndex, //Upper country
-    required this.targetIndex, //Lower country
-    this.onTargetFound, //Function to navigate to the higher/lower game
+    required this.selectedCountry, //Upper country
+    required this.hiddenCountry, //Lower country
+    //this.onTargetFound, //Function to navigate to the higher/lower game
     //this.onAnyTap, //If tapped elsewhere, not sure if this can be used yet
   });
 
-  /// Index of the country initially shown as selected (highlighted).
-  final int preselectedIndex;
-
-  /// Index the user should find. When the user taps this, it becomes selected.
-  final int targetIndex;
+  final String selectedCountry;
+  final String hiddenCountry;
 
   /// Callback when the user taps the target country.
-  final ValueChanged<int>? onTargetFound;
+  //final ValueChanged<int>? onTargetFound;
 
   /// Optional callback for any tap (index, name)
   //final void Function(int index, String name)? onAnyTap;
@@ -50,7 +34,9 @@ class _MapGameState extends State<MapGame> {
   void initState() {
     super.initState();
 
-    _selectedIndex = widget.preselectedIndex;
+    _selectedIndex = EuropeMapData.countries.indexWhere(
+      (c) => c == widget.selectedCountry,
+    );
 
     _shapeSource = MapShapeSource.asset(
       'assets/europe.geojson',
@@ -71,14 +57,16 @@ class _MapGameState extends State<MapGame> {
     );
   }
 
+  /*
   @override
-  void didUpdateWidget(covariant MapGame oldWidget) {
-    super.didUpdateWidget(oldWidget);
+  void didUpdateWidget() {
+    //super.didUpdateWidget(oldWidget);
     // If parent starts a new round, sync our selected index with the new preselected.
-    if (oldWidget.preselectedIndex != widget.preselectedIndex) {
-      setState(() => _selectedIndex = widget.preselectedIndex);
+    if (_selectedIndex == widget.hidden) {
+      setState(() => _hiddenCountry = widget.hiddenCountry);
     }
   }
+*/
 
   @override
   Widget build(BuildContext context) {
@@ -100,9 +88,12 @@ class _MapGameState extends State<MapGame> {
             //widget.onAnyTap?.call(index, tappedName);
 
             // Only promote the selection if it matches the target.
-            if (index == widget.targetIndex) {
+            if (index ==
+                EuropeMapData.countries.indexWhere(
+                  (c) => c == widget.hiddenCountry,
+                )) {
               setState(() => _selectedIndex = index);
-              widget.onTargetFound?.call(index);
+              //widget.onTargetFound?.call(index);
             }
           },
         ),
@@ -122,7 +113,7 @@ class EuropeMapData {
     'Ireland',
     'Estonia',
     'Austria',
-    'Czech Republic',
+    'Czechia',
     'Finland',
     'France',
     'Georgia',
@@ -137,7 +128,7 @@ class EuropeMapData {
     'Lithuania',
     'Slovakia',
     'Lichtenstein',
-    'Macedonia',
+    'North Macedonia',
     'Malta',
     'Belgium',
     'Andorra',
