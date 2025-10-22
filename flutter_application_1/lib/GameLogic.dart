@@ -17,8 +17,13 @@ class Game {
       []; // Stores which stat is being compared in each round
   int playerHealth = 3;
   int currentRoundIndex = 0;
+  int totalScore = 0;
 
   String getCurrentStat() => roundStats[currentRoundIndex];
+  
+  void addToScore(int points) {
+    totalScore += points;
+  }
 
   CountryData? getCurrentCountry() => countryStats[currentRoundIndex];
   CountryData? getNextCountry() => countryStats[currentRoundIndex + 1];
@@ -73,16 +78,10 @@ class GameLogic {
       final next = game.getNextCountry();
       print('\n=== Round ${game.currentRoundIndex + 1} ===');
       print('Comparing: ${game.getCurrentStat()}');
-      print(
-        '${game.rounds[game.currentRoundIndex]} vs ${game.rounds[game.currentRoundIndex + 1]}',
-      );
+      print('${game.rounds[game.currentRoundIndex]} vs ${game.rounds[game.currentRoundIndex + 1]}',);
       print('Current values:');
-      print(
-        '- ${game.rounds[game.currentRoundIndex]}: ${_getStatValue(current, game.getCurrentStat())}',
-      );
-      print(
-        '- ${game.rounds[game.currentRoundIndex + 1]}: ${_getStatValue(next, game.getCurrentStat())}',
-      );
+      print('- ${game.rounds[game.currentRoundIndex]}: ${_getStatValue(current, game.getCurrentStat())}');
+      print('- ${game.rounds[game.currentRoundIndex + 1]}: ${_getStatValue(next, game.getCurrentStat())}');
     }
     return _currentGame;
   }
@@ -174,7 +173,6 @@ class GameLogic {
     'Belarus',
     'Lithuania',
     'Slovakia',
-    'Lichtenstein',
     'North Macedonia',
     'Malta',
     'Belgium',

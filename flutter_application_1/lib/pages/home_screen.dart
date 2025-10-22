@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/lobby.dart';
 import 'package:flutter_application_1/multiplayer/lobbyPage.dart';
 import './high_score.dart';
+import './map_game.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
@@ -34,7 +35,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // single player
-  void _start() => Navigator.pushNamed(context, '/game', arguments: {'mode': _mode});
+  void _start() => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapGame(
+            timeRestriction: _mode == 'timed',
+          ),
+        ),  
+      );
 
   // multiplayer
   void _createLobby() {
@@ -170,14 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // Conditionally show a back button
-        leading: (screenStatus == HomescreenStatus.multiplayer)
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() => screenStatus = HomescreenStatus.home),
-              )
-            : null,
-        // Title based on whether multiplayer is selected or not
+        automaticallyImplyLeading: false,
         title: Text((screenStatus == HomescreenStatus.home) ? 'Home' : 'Multiplayer'),
       ),
       body: Padding(
@@ -229,6 +230,7 @@ void showJoinLobbyDialog(BuildContext context, void Function(String) callback) {
               if (value == null || value.isEmpty) {
                 return 'Please enter a Lobby ID';
               }
+              return null;
             },
           ),
         ),

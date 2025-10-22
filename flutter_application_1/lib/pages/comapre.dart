@@ -1,18 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/GameLogic.dart';
 import 'package:intl/intl.dart';
-
-// Project dependencies
-import 'package:flutter_application_1/components/country.dart';
+import '../components/country.dart';
+import '../components/timer_indicator.dart';
 import '../themes/app_theme.dart';
 
-class ComparePage extends StatelessWidget {
+class ComparePage extends StatefulWidget {
+  final bool timeRestriction;
   final CountryField compareField;
   final Country topCountry;
   final Country bottomCountry;
-
   final void Function() correctCallback;
   final void Function() wrongCallback;
+
+  const ComparePage({
+    Key? key,
+    required this.timeRestriction,
+    required this.compareField,
+    required this.topCountry,
+    required this.bottomCountry,
+    required this.correctCallback,
+    required this.wrongCallback,
+  }) : super(key: key);
+
+  @override
+  State<ComparePage> createState() => _ComparePageState();
+}
+
+class _ComparePageState extends State<ComparePage> {
+  int _currentScore = 50;
+  bool _isActive = true;  // Track timer state locally
+
+  @override
+  void initState() {
+    super.initState();
+    _currentScore = 50;  // Start with full score in compare view
+  }
+
+  void _handleScoreUpdate(int score) {
+    if (!mounted) return;
+    setState(() {
+      _currentScore = score;
+    });
+  }
+
+  void _handleCorrect() {
+    // Stop the timer by setting active to false
+    setState(() {
+      _isActive = false;
+    });
+    
+    // Add score from this view
+    if (widget.timeRestriction) {
+      final game = GameLogic.getCurrentGame();
+      if (game != null) {
+        game.addToScore(_currentScore);
+      }
+    }
+    
+    // Call callback to proceed
+    widget.correctCallback();
+  }
 
   String _getStatText(CountryField field) {
     switch (field) {
@@ -59,15 +107,6 @@ class ComparePage extends StatelessWidget {
     }
   }
 
-  const ComparePage({
-    Key? key,
-    required this.compareField,
-    required this.topCountry,
-    required this.bottomCountry,
-    required this.correctCallback,
-    required this.wrongCallback,
-  }) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,10 +124,34 @@ class ComparePage extends StatelessWidget {
                   color: AppTheme.window90,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  'Round ${GameLogic.getCurrentGame()!.currentRoundIndex + 1}',
-                  style: AppTheme.countryNameTextStyle,
+                child: Builder(
+                  builder: (context) {
+                    final game = GameLogic.getCurrentGame();
+                    final roundNumber = game?.currentRoundIndex != null ? 
+                      game!.currentRoundIndex + 1 : 0;
+                    return Text(
+                      'Round $roundNumber',
+                      style: AppTheme.countryNameTextStyle,
+                    );
+                  },
                 ),
+              ),
+            ),
+            if (widget.timeRestriction) Positioned(
+              top: 20,
+              right: 20,
+              child: TimerIndicator(
+                isActive: _isActive,
+                onScore: _handleScoreUpdate,
+                onTimeUp: () {
+                  // Make sure we handle the timeout cleanly
+                  if (mounted) {
+                    setState(() {
+                      _isActive = false;
+                    });
+                    widget.wrongCallback();
+                  }
+                },
               ),
             ),
             // Main content
@@ -104,9 +167,9 @@ class ComparePage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text("${topCountry.name}'s", style: AppTheme.countryNameTextStyle, textAlign: TextAlign.center),
-                          Text(_getStatText(compareField), style: AppTheme.statisticTypeTextStyle, textAlign: TextAlign.center),
-                          Text(_getStatValueText(topCountry, compareField), style: AppTheme.statisticTextStyle, textAlign: TextAlign.center),
+                          Text("${widget.topCountry.name}'s", style: AppTheme.countryNameTextStyle, textAlign: TextAlign.center),
+                          Text(_getStatText(widget.compareField), style: AppTheme.statisticTypeTextStyle, textAlign: TextAlign.center),
+                          Text(_getStatValueText(widget.topCountry, widget.compareField), style: AppTheme.statisticTextStyle, textAlign: TextAlign.center),
                         ],
                       ),
                     ),
@@ -128,14 +191,14 @@ class ComparePage extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text("${bottomCountry.name}'s", style: AppTheme.countryNameTextStyle, textAlign: TextAlign.center),
-                            Text(_getStatText(compareField), style: AppTheme.statisticTypeTextStyle, textAlign: TextAlign.center),
+                            Text("${widget.bottomCountry.name}'s", style: AppTheme.countryNameTextStyle, textAlign: TextAlign.center),
+                            Text(_getStatText(widget.compareField), style: AppTheme.statisticTypeTextStyle, textAlign: TextAlign.center),
                             TextButton(
                               style: AppTheme.upperCompareButton,
                               onPressed: () {
-                                var value1 = _getCompareValue(topCountry, compareField);
-                                var value2 = _getCompareValue(bottomCountry, compareField);
-                                (value1 < value2) ? correctCallback() : wrongCallback();
+                                var value1 = _getCompareValue(widget.topCountry, widget.compareField);
+                                var value2 = _getCompareValue(widget.bottomCountry, widget.compareField);
+                                (value1 < value2) ? _handleCorrect() : widget.wrongCallback();
                               },
                               child: const Text('Higher'),
                             ),
@@ -143,9 +206,9 @@ class ComparePage extends StatelessWidget {
                             TextButton(
                               style: AppTheme.lowerCompareButton,
                               onPressed: () {
-                                var value1 = _getCompareValue(topCountry, compareField);
-                                var value2 = _getCompareValue(bottomCountry, compareField);
-                                (value1 > value2) ? correctCallback() : wrongCallback();
+                                var value1 = _getCompareValue(widget.topCountry, widget.compareField);
+                                var value2 = _getCompareValue(widget.bottomCountry, widget.compareField);
+                                (value1 > value2) ? _handleCorrect() : widget.wrongCallback();
                               },
                               child: const Text('Lower'),
                             ),
