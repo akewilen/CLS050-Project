@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/pages/home_screen.dart';
 import 'API.dart';
 import 'GameLogic.dart';
 import 'components/country.dart';
@@ -110,7 +111,8 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: ComparePage(
+      home:
+      ComparePage(
         compareField: compareField,
         topCountry: Country(
           game.rounds[game.currentRoundIndex],

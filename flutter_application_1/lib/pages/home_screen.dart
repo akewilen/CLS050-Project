@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _start() => Navigator.pushNamed(context, '/game', arguments: {'mode': _mode});
 
+  void startMultiplayer() => print("TODO");
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,9 +56,46 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Play'),
+              icon: const Icon(Icons.group),
+              label: const Text('Multiplayer'),
               onPressed: _start,
+              style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Singleplayer'),
+              onPressed: _start,
+              style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class MultiplayerSetupScreen extends StatelessWidget {
+  void createLobby() => print("TODO");
+
+  void joinLobby() => print("TODO");
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Multiplayer')),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              label: const Text('Create session'),
+              onPressed: createLobby,
+              style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
+            ),
+            ElevatedButton.icon(
+              label: const Text('Join session'),
+              onPressed: joinLobby,
               style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
             ),
           ],
