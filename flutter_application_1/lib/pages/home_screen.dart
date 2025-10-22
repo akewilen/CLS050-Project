@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/lobby.dart';
+import 'package:flutter_application_1/multiplayer/lobbyPage.dart';
 import './high_score.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -39,13 +40,16 @@ class _HomeScreenState extends State<HomeScreen> {
   void _createLobby() {
     final lobby = setupLobby("1", "John", 5);
 
+    String lobbyId = uuid.v4().toString();
+
     db
     .collection("lobbies")
-    .doc(uuid.v4().toString())
+    .doc(lobbyId)
     .set(lobby)
     .onError((e, _) => print("Error writing document: $e"));
 
-    screenStatus = HomescreenStatus.lobbyAdmin;
+    // screenStatus = HomescreenStatus.lobbyAdmin;
+    Navigator.push(context,  MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId)));
   }
 
   void _joinLobby(BuildContext context) {
@@ -66,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
             "guestId": "2",
             "players.2": guestPlayerData,
           });
+          Navigator.push(context,  MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId)));
         },
         onError: (e) => print("Error getting document: $e"),
       );
