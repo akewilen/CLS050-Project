@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/components/lobby.dart';
 import './high_score.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -75,7 +81,20 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class MultiplayerSetupScreen extends StatelessWidget {
-  void createLobby() => print("TODO");
+  // Create new document on firestore
+  // Receive ID of the document/lobby
+  // see wait screen until friend has joined
+  void createLobby() {
+    final db = FirebaseFirestore.instance;
+
+    final lobby = setupLobby("1", "John", 5);
+
+    db
+    .collection("lobbies")
+    .doc(uuid.v4().toString())
+    .set(lobby)
+    .onError((e, _) => print("Error writing document: $e"));
+  }
 
   void joinLobby() => print("TODO");
 
