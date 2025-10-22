@@ -6,15 +6,13 @@ class MapGame extends StatefulWidget {
     super.key,
     required this.selectedCountry, //Upper country
     required this.hiddenCountry, //Lower country
-    //this.onTargetFound, //Function to navigate to the higher/lower game
-    //this.onAnyTap, //If tapped elsewhere, not sure if this can be used yet
+    required this.onTargetFound, //Function to navigate to the higher/lower game
+    //this.onAnyTap, //If tapped elsewhere, not sure if this can be used yet. Show country name?
   });
 
   final String selectedCountry;
   final String hiddenCountry;
-
-  /// Callback when the user taps the target country.
-  //final ValueChanged<int>? onTargetFound;
+  final VoidCallback onTargetFound;
 
   /// Optional callback for any tap (index, name)
   //final void Function(int index, String name)? onAnyTap;
@@ -26,8 +24,6 @@ class MapGame extends StatefulWidget {
 class _MapGameState extends State<MapGame> {
   late MapShapeSource _shapeSource;
   late MapZoomPanBehavior _zoomPan;
-
-  /// Local “selected” state mirrors the preselected, and updates when target found.
   late int _selectedIndex;
 
   @override
@@ -66,43 +62,48 @@ class _MapGameState extends State<MapGame> {
       setState(() => _hiddenCountry = widget.hiddenCountry);
     }
   }
-*/
+  */
 
   @override
   Widget build(BuildContext context) {
-    return SfMaps(
-      layers: [
-        MapShapeLayer(
-          source: _shapeSource,
-          zoomPanBehavior: _zoomPan,
+    return Stack(
+      children: [
+        SfMaps(
+          layers: [
+            MapShapeLayer(
+              source: _shapeSource,
+              zoomPanBehavior: _zoomPan,
 
-          selectedIndex: _selectedIndex,
-          selectionSettings: const MapSelectionSettings(
-            color: Colors.green,
-            strokeColor: Colors.white,
-            strokeWidth: 1.2,
-          ),
+              selectedIndex: _selectedIndex,
+              selectionSettings: const MapSelectionSettings(
+                color: Colors.green,
+                strokeColor: Colors.white,
+                strokeWidth: 1.2,
+              ),
 
-          onSelectionChanged: (int index) {
-            //final tappedName = EuropeMapData.countries[index];
-            //widget.onAnyTap?.call(index, tappedName);
+              onSelectionChanged: (int index) {
+                //final tappedName = EuropeMapData.countries[index];
+                //widget.onAnyTap?.call(index, tappedName);
 
-            // Only promote the selection if it matches the target.
-            if (index ==
-                EuropeMapData.countries.indexWhere(
+                final hiddenIndex = EuropeMapData.countries.indexWhere(
                   (c) => c == widget.hiddenCountry,
-                )) {
-              setState(() => _selectedIndex = index);
-              //widget.onTargetFound?.call(index);
-            }
-          },
+                );
+
+                // Only promote the selection if it matches the target.
+                if (index == hiddenIndex) {
+                  setState(() => _selectedIndex = index);
+                  widget.onTargetFound();
+                }
+              },
+            ),
+          ],
         ),
+        Positioned(bottom: 50, child: Text('Find: ${widget.hiddenCountry}')),
       ],
     );
   }
 }
 
-/// Central place for the country list so both parent and map widget can access it.
 class EuropeMapData {
   static const List<String> countries = <String>[
     'Albania',
@@ -127,7 +128,6 @@ class EuropeMapData {
     'Belarus',
     'Lithuania',
     'Slovakia',
-    'Lichtenstein',
     'North Macedonia',
     'Malta',
     'Belgium',

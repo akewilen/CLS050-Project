@@ -174,7 +174,6 @@ class GameLogic {
     'Belarus',
     'Lithuania',
     'Slovakia',
-    'Lichtenstein',
     'North Macedonia',
     'Malta',
     'Belgium',
