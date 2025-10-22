@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/high_score.dart';
+import './high_score.dart';
 
 class ScoreScreen extends StatelessWidget {
   const ScoreScreen({super.key});
