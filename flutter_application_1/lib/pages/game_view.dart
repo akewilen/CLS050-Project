@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../GameLogic.dart';
 import '../components/timer_indicator.dart';
 import 'compare.dart';
-import 'home_screen.dart';
 import 'map_game.dart';
 import '../components/country.dart';
 import 'score_screen.dart';
@@ -24,7 +23,8 @@ class GameView extends StatefulWidget {
 
 class _GameViewState extends State<GameView> {
   int _currentScore = 50;
-  bool _isTimerActive = true;
+  bool _isMapTimerActive = true;
+  bool _isCompareTimerActive = true;
   Game currentGame = Game();
 
   Future<void> _openCompareModal({
@@ -33,7 +33,7 @@ class _GameViewState extends State<GameView> {
     required Country bottomCountry,
   }) async {
     // showGeneralDialog pushes a *modal route*, not a new page in your app flow.
-    _isTimerActive = true;
+    _isCompareTimerActive = true;
     await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -65,7 +65,7 @@ class _GameViewState extends State<GameView> {
                   top: 20,
                   right: 20,
                   child: TimerIndicator(
-                    isActive: _isTimerActive,
+                    isActive: _isCompareTimerActive,
                     onScore: _updateScore,
                     onTimeUp: _handleTimeUp,
                   ),
@@ -84,7 +84,7 @@ class _GameViewState extends State<GameView> {
 
   void _onCorrect() async {
     setState(() {
-      _isTimerActive = false;
+      _isCompareTimerActive = false;
     });
     print('compareview score: $_currentScore');
     _addScore(_currentScore);
@@ -100,14 +100,14 @@ class _GameViewState extends State<GameView> {
       _currentScore = 50;
       //_selectedIndex = null;
       //_hasSelectedCountry = false;
-      _isTimerActive = true; // Restart timer for new round
+      _isMapTimerActive = true; // Restart timer for new round
     });
   }
 
   void _onWrong() async {
     int finalScore = currentGame.totalScore;
     // Add the current round's score before ending if it's time restricted mode
-    if (widget.timeRestriction && _currentScore > 0 && currentGame != null) {
+    if (widget.timeRestriction && _currentScore > 0) {
       finalScore = currentGame.totalScore;
     }
     await HighScore.setIfHigher(finalScore);
@@ -132,7 +132,8 @@ class _GameViewState extends State<GameView> {
   void _handleTimeUp() {
     if (mounted) {
       setState(() {
-        _isTimerActive = false;
+        _isMapTimerActive = false;
+        _isCompareTimerActive = false;
       });
       _onWrong();
     }
@@ -223,11 +224,12 @@ class _GameViewState extends State<GameView> {
         children: [
           MapGame(
             selectedCountry: currentGame.rounds[currentGame.currentRoundIndex],
-            hiddenCountry: currentGame.rounds[currentGame.currentRoundIndex + 1],
+            hiddenCountry:
+                currentGame.rounds[currentGame.currentRoundIndex + 1],
             onTargetFound: () async {
               // show the full-screen compare overlay
               setState(() {
-                _isTimerActive = false;
+                _isMapTimerActive = false;
               });
               print('mapview score: $_currentScore');
               _addScore(_currentScore);
@@ -246,7 +248,7 @@ class _GameViewState extends State<GameView> {
               top: 20,
               right: 20,
               child: TimerIndicator(
-                isActive: _isTimerActive,
+                isActive: _isMapTimerActive,
                 onScore: _updateScore,
                 onTimeUp: _handleTimeUp,
               ),
