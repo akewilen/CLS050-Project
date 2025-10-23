@@ -49,7 +49,7 @@ class _ComparePageState extends State<ComparePage> {
   String _getStatValueText(Country country, CountryField field) {
     switch (field) {
       case CountryField.population:
-        return '${NumberFormat('#,###').format(country.population)} million';
+        return NumberFormat('#,###').format((country.population * 1000).toInt());
       case CountryField.forestedArea:
         return '${country.forestedArea} %';
       case CountryField.surfaceArea:
