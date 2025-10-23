@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/lobby.dart';
 import 'package:flutter_application_1/multiplayer/lobbyPage.dart';
 import './high_score.dart';
+import 'game_view.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
@@ -34,7 +35,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // single player
-  void _start() => Navigator.pushNamed(context, '/game', arguments: {'mode': _mode});
+  void _start() => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => GameView(timeRestriction: _mode == 'timed'),
+    ),
+  );
 
   // multiplayer
   void _createLobby() {
@@ -43,37 +49,39 @@ class _HomeScreenState extends State<HomeScreen> {
     String lobbyId = uuid.v4().toString();
 
     db
-    .collection("lobbies")
-    .doc(lobbyId)
-    .set(lobby)
-    .onError((e, _) => print("Error writing document: $e"));
+        .collection("lobbies")
+        .doc(lobbyId)
+        .set(lobby)
+        .onError((e, _) => print("Error writing document: $e"));
 
     // screenStatus = HomescreenStatus.lobbyAdmin;
-    Navigator.push(context,  MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId)),
+    );
   }
 
   void _joinLobby(BuildContext context) {
     void joinLobbyAttempt(String lobbyId) {
       final docRef = db.collection("lobbies").doc(lobbyId);
-      docRef.get().then(
-        (DocumentSnapshot doc) {
-          final data = doc.data();
+      docRef.get().then((DocumentSnapshot doc) {
+        final data = doc.data();
 
-          final Map<String, dynamic> guestPlayerData = {
-            "name": "guestName",
-            "score": 0,
-            "readyForNextRound": false,
-            "lastAnswerTime": null,
-          };
+        final Map<String, dynamic> guestPlayerData = {
+          "name": "guestName",
+          "score": 0,
+          "readyForNextRound": false,
+          "lastAnswerTime": null,
+        };
 
-          docRef.update({
-            "guestId": "2",
-            "players.2": guestPlayerData,
-          });
-          Navigator.push(context,  MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId)));
-        },
-        onError: (e) => print("Error getting document: $e"),
-      );
+        docRef.update({"guestId": "2", "players.2": guestPlayerData});
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LobbyScreen(lobbyId: lobbyId),
+          ),
+        );
+      }, onError: (e) => print("Error getting document: $e"));
     }
 
     showJoinLobbyDialog(context, joinLobbyAttempt);
@@ -84,8 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('Highest Score: $_highest',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(
+          'Highest Score: $_highest',
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -107,7 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ElevatedButton.icon(
           icon: const Icon(Icons.group),
           label: const Text('Multiplayer'),
-          onPressed: () => setState(() => screenStatus = HomescreenStatus.multiplayer),
+          onPressed: () =>
+              setState(() => screenStatus = HomescreenStatus.multiplayer),
           style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
         ),
         const SizedBox(height: 12),
@@ -143,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-    // "Subpage" for user creating a lobby
+  // "Subpage" for user creating a lobby
   Widget _buildAdminLobby() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -174,34 +185,32 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: (screenStatus == HomescreenStatus.multiplayer)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() => screenStatus = HomescreenStatus.home),
+                onPressed: () =>
+                    setState(() => screenStatus = HomescreenStatus.home),
               )
             : null,
         // Title based on whether multiplayer is selected or not
-        title: Text((screenStatus == HomescreenStatus.home) ? 'Home' : 'Multiplayer'),
+        title: Text(
+          (screenStatus == HomescreenStatus.home) ? 'Home' : 'Multiplayer',
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         // Conditionally render the correct UI
-      child: Center(
+        child: Center(
           child: switch (screenStatus) {
             HomescreenStatus.home => _buildMainHome(),
             HomescreenStatus.multiplayer => _buildMultiplayerSetup(),
             HomescreenStatus.lobbyAdmin => _buildAdminLobby(),
             _ => const Text('Unknown Screen Status'),
           },
-        )
+        ),
       ),
     );
   }
 }
 
-enum HomescreenStatus {
-  home,
-  multiplayer,
-  lobbyAdmin,
-  lobbyGuest,
-}
+enum HomescreenStatus { home, multiplayer, lobbyAdmin, lobbyGuest }
 
 void showJoinLobbyDialog(BuildContext context, void Function(String) callback) {
   // Use a TextEditingController to easily read the input value
@@ -236,7 +245,7 @@ void showJoinLobbyDialog(BuildContext context, void Function(String) callback) {
           TextButton(
             onPressed: () {
               // Passing null means the user cancelled the action
-              Navigator.of(context).pop(null); 
+              Navigator.of(context).pop(null);
             },
             child: const Text('Cancel'),
           ),

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import './high_score.dart';
+//import '../GameLogic.dart';
 
 class ScoreScreen extends StatelessWidget {
-  const ScoreScreen({super.key});
+  final int score;
+
+  const ScoreScreen({super.key, required this.score});
 
   @override
   Widget build(BuildContext context) {
+    //final game = GameLogic.getCurrentGame();
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    final correct = (args['correct'] ?? 0) as int;
-    final total   = (args['total']   ?? 0) as int;
+    //final correct = (args['correct'] ?? 0) as int;
+    final correct = score;
+    final total = (args['total'] ?? 0) as int;
 
     HighScore.setIfHigher(correct); // persist best
 
@@ -22,17 +27,31 @@ class ScoreScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('You got $correct / $total correct', style: const TextStyle(fontSize: 22)),
+              Text(
+                'You got $correct / $total correct',
+                style: const TextStyle(fontSize: 22),
+              ),
               const SizedBox(height: 8),
-              Text('$pct %', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+              Text(
+                '$pct %',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 28),
               ElevatedButton(
-                onPressed: () => Navigator.pushReplacementNamed(context, '/game'),
+                onPressed: () =>
+                    Navigator.pushReplacementNamed(context, '/game'),
                 child: const Text('Play Again'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false),
+                onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (r) => false,
+                ),
                 child: const Text('Home'),
               ),
             ],

@@ -73,7 +73,6 @@ class _MapGameState extends State<MapGame> {
             MapShapeLayer(
               source: _shapeSource,
               zoomPanBehavior: _zoomPan,
-
               selectedIndex: _selectedIndex,
               selectionSettings: const MapSelectionSettings(
                 color: Colors.green,

@@ -3,10 +3,12 @@ import '../GameLogic.dart';
 import 'comapre.dart';
 import 'map_game.dart';
 import '../components/country.dart';
+import 'score_screen.dart';
 
 class GameView extends StatefulWidget {
-  const GameView({super.key});
+  const GameView({super.key, required this.timeRestriction});
 
+  final bool timeRestriction;
   @override
   State<GameView> createState() => _GameViewState();
 }
@@ -44,7 +46,6 @@ class _GameViewState extends State<GameView> {
                 // When wrong: keep modal open, but let your game logic react.
                 wrongCallback: () {
                   _onWrong();
-                  Navigator.of(context).pop(true);
                 },
               ),
             ),
@@ -64,11 +65,21 @@ class _GameViewState extends State<GameView> {
 
   void _onWrong() async {
     print("You were wrong!");
+    final game = GameLogic.getCurrentGame();
+    final int score = game?.currentRoundIndex ?? 0;
+
     GameLogic.resetGame();
     await GameLogic.createGame();
+    Navigator.of(context).pop(true);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => ScoreScreen(score: score)),
+    );
+    /*
     setState(() {
       // Trigger rebuild with new game state
     });
+    */
   }
 
   CountryField _getCompareField(String statName) {
