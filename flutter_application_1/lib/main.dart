@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/home_screen.dart';
 import 'API.dart';
-import 'GameLogic.dart';
 
 // Firebase imports
 import 'package:firebase_core/firebase_core.dart';
@@ -10,7 +9,6 @@ import 'firebase_options.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
-
   // Api key loading
   WidgetsFlutterBinding.ensureInitialized();
   await loadEnv();
@@ -19,9 +17,7 @@ void main() async {
   // Setting up firebase
   // see: https://firebase.google.com/docs/flutter/setup?authuser=0&platform=ios
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const MyApp());
 }
@@ -38,11 +34,8 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Country Game',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const HomeScreen(),
     );
   }
 }
-

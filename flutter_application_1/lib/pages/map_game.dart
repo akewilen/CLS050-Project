@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
-import '../GameLogic.dart';
-import '../components/country.dart';
-import '../components/timer_indicator.dart';
-import 'compare.dart';
-import './high_score.dart';
-import './home_screen.dart';
 
 class MapGame extends StatefulWidget {
   final String selectedCountry;

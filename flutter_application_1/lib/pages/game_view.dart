@@ -116,8 +116,8 @@ class _GameViewState extends State<GameView> {
     currentGame = await GameLogic.createGame();
     if (!mounted) return;
 
-    Navigator.pushReplacement(
-      //pushAndRemoveUntil... replace both compare och map in the navigation stack
+    Navigator.pushAndRemoveUntil(
+      //change to: pushAndRemoveUntil... replace both compare och map in the navigation stack
       context,
       MaterialPageRoute(
         builder: (context) => ScoreScreen(
@@ -126,6 +126,7 @@ class _GameViewState extends State<GameView> {
           finalScore: finalScore,
         ),
       ),
+      ModalRoute.withName('/'),
     );
   }
 

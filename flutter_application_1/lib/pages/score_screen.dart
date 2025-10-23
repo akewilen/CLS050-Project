@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import './high_score.dart';
-import 'home_screen.dart';
 import 'game_view.dart';
-import 'high_score.dart';
 
 class ScoreScreen extends StatelessWidget {
   const ScoreScreen({
@@ -55,12 +52,15 @@ class ScoreScreen extends StatelessWidget {
                 const SizedBox(width: 20),
                 ElevatedButton.icon(
                   onPressed: () {
+                    Navigator.pop(context);
+                    /*
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const HomeScreen(),
                       ),
                     );
+                  */
                   },
                   icon: const Icon(Icons.home),
                   label: const Text('Home'),
