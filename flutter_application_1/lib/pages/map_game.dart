@@ -8,11 +8,17 @@ import './high_score.dart';
 import './home_screen.dart';
 
 class MapGame extends StatefulWidget {
-  final bool timeRestriction;
-  
+  final String selectedCountry;
+  final String hiddenCountry;
+  final VoidCallback onTargetFound;
+  final VoidCallback onWrong;
+
   const MapGame({
     super.key,
-    required this.timeRestriction,
+    required this.selectedCountry, //Upper country
+    required this.hiddenCountry, //Lower country
+    required this.onTargetFound, //Function to navigate to the higher/lower game
+    required this.onWrong,
   });
 
   @override
@@ -22,150 +28,19 @@ class MapGame extends StatefulWidget {
 class _MapGameState extends State<MapGame> {
   late MapShapeSource _shapeSource;
   late MapZoomPanBehavior _zoomPan;
-  String? _targetCountry;
   int? _selectedIndex;
-  bool _hasSelectedCountry = false;
-  int _currentScore = 50;
-  bool _isTimerActive = true;
-
-  CountryField _getCompareField(String statName) {
-    switch (statName) {
-      case 'Surface Area':
-        return CountryField.surfaceArea;
-      case 'Population':
-        return CountryField.population;
-      case 'CO2 Emissions':
-        return CountryField.co2Emissions;
-      case 'Forested Area':
-        return CountryField.forestedArea;
-      case 'GDP per Capita':
-        return CountryField.gdpPerCapita;
-      default:
-        return CountryField.population; // fallback
-    }
-  }
-
-  void _onCorrect() async {
-    final game = GameLogic.getCurrentGame();
-    if (game != null) {
-      // Points have already been added in the compare view
-      await GameLogic.nextRound();
-      if (!mounted) return;
-      
-      // Pop back to map view
-      Navigator.pop(context);
-      
-      // Reset state for new round
-      setState(() {
-        _currentScore = 50;
-        _targetCountry = game.rounds[game.currentRoundIndex];
-        _selectedIndex = null;
-        _hasSelectedCountry = false;
-        _isTimerActive = true;  // Restart timer for new round
-      });
-    }
-  }
-
-  void _onWrong() async {
-    final game = GameLogic.getCurrentGame();
-    int finalScore = game?.totalScore ?? 0;
-    // Add the current round's score before ending if it's time restricted mode
-    if (widget.timeRestriction && _currentScore > 0 && game != null) {
-      finalScore = game.totalScore;
-    }
-    await HighScore.setIfHigher(finalScore);
-    final highScore = await HighScore.get();
-    
-    GameLogic.resetGame();
-    if (!mounted) return;
-    
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text('Game Over')),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Game Over!',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Score: $finalScore',
-                  style: const TextStyle(fontSize: 20),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'High Score: $highScore',
-                  style: const TextStyle(fontSize: 20),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MapGame(
-                              timeRestriction: widget.timeRestriction,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Play Again'),
-                    ),
-                    const SizedBox(width: 20),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
-                        );
-                      },
-                      icon: const Icon(Icons.home),
-                      label: const Text('Home'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _handleTimeUp() {
-    _onWrong();
-  }
-
-  void _updateScore(int score) {
-    setState(() {
-      _currentScore = score;
-    });
-  }
+  //bool _hasSelectedCountry = false; //?
 
   @override
   void initState() {
     super.initState();
-    _initializeGame();
+    _initializeMap();
   }
 
-  Future<void> _initializeGame() async {
-    await GameLogic.createGame();
-    
-    final game = GameLogic.getCurrentGame();
-    if (game != null) {
-      setState(() {
-        _targetCountry = game.rounds[game.currentRoundIndex];
-      });
-    }
+  Future<void> _initializeMap() async {
+    _selectedIndex = EuropeMapData.countries.indexWhere(
+      (c) => c == widget.selectedCountry,
+    );
 
     _shapeSource = MapShapeSource.asset(
       'assets/europe.geojson',
@@ -187,7 +62,9 @@ class _MapGameState extends State<MapGame> {
 
   @override
   Widget build(BuildContext context) {
-    if (_targetCountry == null) {
+    final game = GameLogic.getCurrentGame();
+
+    if (_selectedIndex == null || game == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -206,14 +83,25 @@ class _MapGameState extends State<MapGame> {
                   strokeWidth: 1.2,
                 ),
                 onSelectionChanged: (int index) {
-                  setState(() {
-                    _selectedIndex = index;
-                    _hasSelectedCountry = true;
-                  });
+                  //final tappedName = EuropeMapData.countries[index];
+                  //widget.onAnyTap?.call(index, tappedName);
+
+                  final hiddenIndex = EuropeMapData.countries.indexWhere(
+                    (c) => c == widget.hiddenCountry,
+                  );
+
+                  // Only promote the selection if it matches the target.
+                  if (index == hiddenIndex) {
+                    //game.addToScore(_currentScore);
+                    setState(() => _selectedIndex = index);
+                    widget.onTargetFound();
+                  }
                 },
               ),
             ],
           ),
+          Positioned(bottom: 50, child: Text('Find: ${widget.hiddenCountry}')),
+          /*
           if (widget.timeRestriction) Positioned(
             top: 20,
             left: 20,
@@ -223,6 +111,8 @@ class _MapGameState extends State<MapGame> {
               onTimeUp: _handleTimeUp,
             ),
           ),
+          */
+          /*
           Positioned(
             bottom: 16,
             right: 16,
@@ -232,7 +122,7 @@ class _MapGameState extends State<MapGame> {
                 final selectedCountry = _selectedIndex != null ? 
                   EuropeMapData.countries[_selectedIndex!] : null;
                 
-                if (selectedCountry == _targetCountry) {
+                if (selectedCountry == widget.selectedCountry) {
                   // Stop this view's timer and add the map score
                   setState(() {
                     _isTimerActive = false;
@@ -285,6 +175,7 @@ class _MapGameState extends State<MapGame> {
               icon: Icon(_hasSelectedCountry ? Icons.check : Icons.search),
             ),
           ),
+          */
         ],
       ),
     );

@@ -6,7 +6,6 @@ import '../components/timer_indicator.dart';
 import '../themes/app_theme.dart';
 
 class ComparePage extends StatefulWidget {
-  final bool timeRestriction;
   final CountryField compareField;
   final Country topCountry;
   final Country bottomCountry;
@@ -15,7 +14,6 @@ class ComparePage extends StatefulWidget {
 
   const ComparePage({
     Key? key,
-    required this.timeRestriction,
     required this.compareField,
     required this.topCountry,
     required this.bottomCountry,
@@ -28,38 +26,9 @@ class ComparePage extends StatefulWidget {
 }
 
 class _ComparePageState extends State<ComparePage> {
-  int _currentScore = 50;
-  bool _isActive = true;  // Track timer state locally
-
   @override
   void initState() {
     super.initState();
-    _currentScore = 50;  // Start with full score in compare view
-  }
-
-  void _handleScoreUpdate(int score) {
-    if (!mounted) return;
-    setState(() {
-      _currentScore = score;
-    });
-  }
-
-  void _handleCorrect() {
-    // Stop the timer by setting active to false
-    setState(() {
-      _isActive = false;
-    });
-    
-    // Add score from this view
-    if (widget.timeRestriction) {
-      final game = GameLogic.getCurrentGame();
-      if (game != null) {
-        game.addToScore(_currentScore);
-      }
-    }
-    
-    // Call callback to proceed
-    widget.correctCallback();
   }
 
   String _getStatText(CountryField field) {
@@ -127,31 +96,15 @@ class _ComparePageState extends State<ComparePage> {
                 child: Builder(
                   builder: (context) {
                     final game = GameLogic.getCurrentGame();
-                    final roundNumber = game?.currentRoundIndex != null ? 
-                      game!.currentRoundIndex + 1 : 0;
+                    final roundNumber = game?.currentRoundIndex != null
+                        ? game!.currentRoundIndex + 1
+                        : 0;
                     return Text(
                       'Round $roundNumber',
                       style: AppTheme.countryNameTextStyle,
                     );
                   },
                 ),
-              ),
-            ),
-            if (widget.timeRestriction) Positioned(
-              top: 20,
-              right: 20,
-              child: TimerIndicator(
-                isActive: _isActive,
-                onScore: _handleScoreUpdate,
-                onTimeUp: () {
-                  // Make sure we handle the timeout cleanly
-                  if (mounted) {
-                    setState(() {
-                      _isActive = false;
-                    });
-                    widget.wrongCallback();
-                  }
-                },
               ),
             ),
             // Main content
@@ -167,9 +120,24 @@ class _ComparePageState extends State<ComparePage> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text("${widget.topCountry.name}'s", style: AppTheme.countryNameTextStyle, textAlign: TextAlign.center),
-                          Text(_getStatText(widget.compareField), style: AppTheme.statisticTypeTextStyle, textAlign: TextAlign.center),
-                          Text(_getStatValueText(widget.topCountry, widget.compareField), style: AppTheme.statisticTextStyle, textAlign: TextAlign.center),
+                          Text(
+                            "${widget.topCountry.name}'s",
+                            style: AppTheme.countryNameTextStyle,
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            _getStatText(widget.compareField),
+                            style: AppTheme.statisticTypeTextStyle,
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            _getStatValueText(
+                              widget.topCountry,
+                              widget.compareField,
+                            ),
+                            style: AppTheme.statisticTextStyle,
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       ),
                     ),
@@ -191,14 +159,30 @@ class _ComparePageState extends State<ComparePage> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text("${widget.bottomCountry.name}'s", style: AppTheme.countryNameTextStyle, textAlign: TextAlign.center),
-                            Text(_getStatText(widget.compareField), style: AppTheme.statisticTypeTextStyle, textAlign: TextAlign.center),
+                            Text(
+                              "${widget.bottomCountry.name}'s",
+                              style: AppTheme.countryNameTextStyle,
+                              textAlign: TextAlign.center,
+                            ),
+                            Text(
+                              _getStatText(widget.compareField),
+                              style: AppTheme.statisticTypeTextStyle,
+                              textAlign: TextAlign.center,
+                            ),
                             TextButton(
                               style: AppTheme.upperCompareButton,
                               onPressed: () {
-                                var value1 = _getCompareValue(widget.topCountry, widget.compareField);
-                                var value2 = _getCompareValue(widget.bottomCountry, widget.compareField);
-                                (value1 < value2) ? _handleCorrect() : widget.wrongCallback();
+                                var value1 = _getCompareValue(
+                                  widget.topCountry,
+                                  widget.compareField,
+                                );
+                                var value2 = _getCompareValue(
+                                  widget.bottomCountry,
+                                  widget.compareField,
+                                );
+                                (value1 < value2)
+                                    ? widget.correctCallback()
+                                    : widget.wrongCallback();
                               },
                               child: const Text('Higher'),
                             ),
@@ -206,9 +190,17 @@ class _ComparePageState extends State<ComparePage> {
                             TextButton(
                               style: AppTheme.lowerCompareButton,
                               onPressed: () {
-                                var value1 = _getCompareValue(widget.topCountry, widget.compareField);
-                                var value2 = _getCompareValue(widget.bottomCountry, widget.compareField);
-                                (value1 > value2) ? _handleCorrect() : widget.wrongCallback();
+                                var value1 = _getCompareValue(
+                                  widget.topCountry,
+                                  widget.compareField,
+                                );
+                                var value2 = _getCompareValue(
+                                  widget.bottomCountry,
+                                  widget.compareField,
+                                );
+                                (value1 > value2)
+                                    ? widget.correctCallback()
+                                    : widget.wrongCallback();
                               },
                               child: const Text('Lower'),
                             ),

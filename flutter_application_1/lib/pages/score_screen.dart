@@ -1,42 +1,73 @@
 import 'package:flutter/material.dart';
 import './high_score.dart';
+import 'home_screen.dart';
+import 'game_view.dart';
+import 'high_score.dart';
 
 class ScoreScreen extends StatelessWidget {
-  const ScoreScreen({super.key});
+  const ScoreScreen({
+    super.key,
+    required this.timeRestriction,
+    required this.highScore,
+    required this.finalScore,
+  });
+
+  final bool timeRestriction;
+  final int highScore;
+  final int finalScore;
 
   @override
   Widget build(BuildContext context) {
-    final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    final correct = (args['correct'] ?? 0) as int;
-    final total   = (args['total']   ?? 0) as int;
-
-    HighScore.setIfHigher(correct); // persist best
-
-    final pct = total > 0 ? (correct / total * 100).toStringAsFixed(1) : '0.0';
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Score')),
+      appBar: AppBar(title: const Text('Game Over')),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('You got $correct / $total correct', style: const TextStyle(fontSize: 22)),
-              const SizedBox(height: 8),
-              Text('$pct %', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: () => Navigator.pushReplacementNamed(context, '/game'),
-                child: const Text('Play Again'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false),
-                child: const Text('Home'),
-              ),
-            ],
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Game Over!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Text('Score: $finalScore', style: const TextStyle(fontSize: 20)),
+            const SizedBox(height: 10),
+            Text(
+              'High Score: $highScore',
+              style: const TextStyle(fontSize: 20),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            GameView(timeRestriction: timeRestriction),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Play Again'),
+                ),
+                const SizedBox(width: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HomeScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.home),
+                  label: const Text('Home'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
