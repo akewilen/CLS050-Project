@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/GameLogic.dart';
 import 'package:intl/intl.dart';
 import '../components/country.dart';
 import '../components/timer_indicator.dart';
@@ -11,6 +10,7 @@ class ComparePage extends StatefulWidget {
   final Country bottomCountry;
   final void Function() correctCallback;
   final void Function() wrongCallback;
+  final int roundNumber;
 
   const ComparePage({
     Key? key,
@@ -19,6 +19,7 @@ class ComparePage extends StatefulWidget {
     required this.bottomCountry,
     required this.correctCallback,
     required this.wrongCallback,
+    required this.roundNumber,
   }) : super(key: key);
 
   @override
@@ -95,12 +96,8 @@ class _ComparePageState extends State<ComparePage> {
                 ),
                 child: Builder(
                   builder: (context) {
-                    final game = GameLogic.getCurrentGame();
-                    final roundNumber = game?.currentRoundIndex != null
-                        ? game!.currentRoundIndex + 1
-                        : 0;
                     return Text(
-                      'Round $roundNumber',
+                      'Round ${widget.roundNumber}',
                       style: AppTheme.countryNameTextStyle,
                     );
                   },

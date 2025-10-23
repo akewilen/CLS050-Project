@@ -16,11 +16,11 @@ class Game {
   List<String> roundStats =
       []; // Stores which stat is being compared in each round
   int playerHealth = 3;
-  int currentRoundIndex = 0;
+  int currentRoundIndex = 1;
   int totalScore = 0;
 
   String getCurrentStat() => roundStats[currentRoundIndex];
-  
+
   void addToScore(int points) {
     totalScore += points;
   }
@@ -28,12 +28,37 @@ class Game {
   CountryData? getCurrentCountry() => countryStats[currentRoundIndex];
   CountryData? getNextCountry() => countryStats[currentRoundIndex + 1];
   bool hasNextRound() => currentRoundIndex < rounds.length - 2;
+  bool isInitialized() => rounds.isNotEmpty;
+
+  Future<void> nextRound() async {
+    if (!hasNextRound()) {
+      return;
+    }
+    currentRoundIndex++;
+    await _fetchCountriesForCurrentRound();
+  }
+
+  Future<void> _fetchCountriesForCurrentRound() async {
+    // Fetch current country if not already fetched
+    if (!countryStats.containsKey(currentRoundIndex)) {
+      final currentStats = await fetchCountryData(
+        rounds[currentRoundIndex],
+      );
+      countryStats[currentRoundIndex] = currentStats;
+    }
+
+    // Fetch next country if not already fetched
+    if (!countryStats.containsKey(currentRoundIndex + 1)) {
+      final nextStats = await fetchCountryData(
+        rounds[currentRoundIndex + 1],
+      );
+      countryStats[currentRoundIndex + 1] = nextStats;
+    }
+  }
 }
 
 class GameLogic {
-  static Game? _currentGame;
-
-  static Future<Game?> createGame() async {
+  static Future<Game> createGame() async {
     final game = Game();
     // Create a copy of the countries list and shuffle it
     game.rounds = List<String>.from(europeanCountries)..shuffle(Random());
@@ -47,56 +72,8 @@ class GameLogic {
     }
 
     // Only fetch the first two countries
-    await _fetchCountriesForCurrentRound(game);
-
-    _currentGame = game;
+    await game._fetchCountriesForCurrentRound();
     return game;
-  }
-
-  static Future<void> _fetchCountriesForCurrentRound(Game game) async {
-    // Fetch current country if not already fetched
-    if (!game.countryStats.containsKey(game.currentRoundIndex)) {
-      final currentStats = await fetchCountryData(
-        game.rounds[game.currentRoundIndex],
-      );
-      game.countryStats[game.currentRoundIndex] = currentStats;
-    }
-
-    // Fetch next country if not already fetched
-    if (!game.countryStats.containsKey(game.currentRoundIndex + 1)) {
-      final nextStats = await fetchCountryData(
-        game.rounds[game.currentRoundIndex + 1],
-      );
-      game.countryStats[game.currentRoundIndex + 1] = nextStats;
-    }
-  }
-
-  static Game? getCurrentGame() {
-    if (_currentGame != null) {
-      final game = _currentGame!;
-      final current = game.getCurrentCountry();
-      final next = game.getNextCountry();
-      print('\n=== Round ${game.currentRoundIndex + 1} ===');
-      print('Comparing: ${game.getCurrentStat()}');
-      print('${game.rounds[game.currentRoundIndex]} vs ${game.rounds[game.currentRoundIndex + 1]}',);
-      print('Current values:');
-      print('- ${game.rounds[game.currentRoundIndex]}: ${_getStatValue(current, game.getCurrentStat())}');
-      print('- ${game.rounds[game.currentRoundIndex + 1]}: ${_getStatValue(next, game.getCurrentStat())}');
-    }
-    return _currentGame;
-  }
-
-  static Future<bool> nextRound() async {
-    if (_currentGame == null || !_currentGame!.hasNextRound()) {
-      return false;
-    }
-    _currentGame!.currentRoundIndex++;
-    await _fetchCountriesForCurrentRound(_currentGame!);
-    return true;
-  }
-
-  static void resetGame() {
-    _currentGame = null;
   }
 
   static dynamic _getStatValue(CountryData? country, String statName) {
@@ -120,10 +97,6 @@ class GameLogic {
   static Future<void> testPrintAllRounds() async {
     print("Starting game sequence test...");
     final game = await createGame();
-    if (game == null) {
-      print("Failed to create game");
-      return;
-    }
 
     print("\nRound 1:");
     print("Comparing: ${game.getCurrentStat()}");
@@ -136,19 +109,19 @@ class GameLogic {
       "Stats: ${game.countryStats[1]?.surfaceArea}, ${game.countryStats[1]?.population}, ${game.countryStats[1]?.co2Emissions}, ${game.countryStats[1]?.forestedArea}, ${game.countryStats[1]?.gdpPerCapita}",
     );
 
-    while (await nextRound()) {
-      print("\nRound ${game.currentRoundIndex + 1}:");
-      print("Comparing: ${game.getCurrentStat()}");
-      print("Country 1: ${game.rounds[game.currentRoundIndex]}");
-      print(
-        "Stats: ${game.countryStats[game.currentRoundIndex]?.surfaceArea}, ${game.countryStats[game.currentRoundIndex]?.population}, ${game.countryStats[game.currentRoundIndex]?.co2Emissions}, ${game.countryStats[game.currentRoundIndex]?.forestedArea}, ${game.countryStats[game.currentRoundIndex]?.gdpPerCapita}",
-      );
-      print("Country 2: ${game.rounds[game.currentRoundIndex + 1]}");
-      print(
-        "Stats: ${game.countryStats[game.currentRoundIndex + 1]?.surfaceArea}, ${game.countryStats[game.currentRoundIndex + 1]?.population}, ${game.countryStats[game.currentRoundIndex + 1]?.co2Emissions}, ${game.countryStats[game.currentRoundIndex + 1]?.forestedArea}, ${game.countryStats[game.currentRoundIndex + 1]?.gdpPerCapita}",
-      );
-    }
-    print("\nTest complete!");
+    // while (await nextRound()) {
+    //   print("\nRound ${game.currentRoundIndex + 1}:");
+    //   print("Comparing: ${game.getCurrentStat()}");
+    //   print("Country 1: ${game.rounds[game.currentRoundIndex]}");
+    //   print(
+    //     "Stats: ${game.countryStats[game.currentRoundIndex]?.surfaceArea}, ${game.countryStats[game.currentRoundIndex]?.population}, ${game.countryStats[game.currentRoundIndex]?.co2Emissions}, ${game.countryStats[game.currentRoundIndex]?.forestedArea}, ${game.countryStats[game.currentRoundIndex]?.gdpPerCapita}",
+    //   );
+    //   print("Country 2: ${game.rounds[game.currentRoundIndex + 1]}");
+    //   print(
+    //     "Stats: ${game.countryStats[game.currentRoundIndex + 1]?.surfaceArea}, ${game.countryStats[game.currentRoundIndex + 1]?.population}, ${game.countryStats[game.currentRoundIndex + 1]?.co2Emissions}, ${game.countryStats[game.currentRoundIndex + 1]?.forestedArea}, ${game.countryStats[game.currentRoundIndex + 1]?.gdpPerCapita}",
+    //   );
+    // }
+    // print("\nTest complete!");
   }
 
   static const List<String> europeanCountries = [

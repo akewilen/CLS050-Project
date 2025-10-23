@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../GameLogic.dart';
 import '../components/timer_indicator.dart';
-import 'comapre.dart';
+import 'compare.dart';
 import 'home_screen.dart';
 import 'map_game.dart';
 import '../components/country.dart';
@@ -25,6 +25,7 @@ class GameView extends StatefulWidget {
 class _GameViewState extends State<GameView> {
   int _currentScore = 50;
   bool _isTimerActive = true;
+  Game currentGame = Game();
 
   Future<void> _openCompareModal({
     required CountryField compareField,
@@ -56,7 +57,9 @@ class _GameViewState extends State<GameView> {
                 wrongCallback: () {
                   _onWrong();
                 },
+                roundNumber: currentGame.currentRoundIndex,
               ),
+              // Show the timer if there is a time restriction active.
               if (widget.timeRestriction)
                 Positioned(
                   top: 20,
@@ -74,8 +77,8 @@ class _GameViewState extends State<GameView> {
     );
   }
 
-  void _addScore(Game game, int score) {
-    game.addToScore(score);
+  void _addScore(int score) {
+    currentGame.addToScore(score);
     _currentScore = 50;
   }
 
@@ -83,38 +86,34 @@ class _GameViewState extends State<GameView> {
     setState(() {
       _isTimerActive = false;
     });
-    final game = GameLogic.getCurrentGame();
-    if (game != null) {
-      print('campareview score: $_currentScore');
-      _addScore(game, _currentScore);
-      // Points have already been added in the compare view
-      await GameLogic.nextRound();
-      if (!mounted) return;
+    print('compareview score: $_currentScore');
+    _addScore(_currentScore);
+    // Points have already been added in the compare view
+    await currentGame.nextRound();
+    if (!mounted) return;
 
-      // Pop back to map view
-      Navigator.pop(context);
+    // Pop back to map view
+    Navigator.pop(context);
 
-      // Reset state for new round
-      setState(() {
-        _currentScore = 50;
-        //_selectedIndex = null;
-        //_hasSelectedCountry = false;
-        _isTimerActive = true; // Restart timer for new round
-      });
-    }
+    // Reset state for new round
+    setState(() {
+      _currentScore = 50;
+      //_selectedIndex = null;
+      //_hasSelectedCountry = false;
+      _isTimerActive = true; // Restart timer for new round
+    });
   }
 
   void _onWrong() async {
-    final game = GameLogic.getCurrentGame();
-    int finalScore = game?.totalScore ?? 0;
+    int finalScore = currentGame.totalScore;
     // Add the current round's score before ending if it's time restricted mode
-    if (widget.timeRestriction && _currentScore > 0 && game != null) {
-      finalScore = game.totalScore;
+    if (widget.timeRestriction && _currentScore > 0 && currentGame != null) {
+      finalScore = currentGame.totalScore;
     }
     await HighScore.setIfHigher(finalScore);
     final highScore = await HighScore.get();
 
-    GameLogic.resetGame();
+    currentGame = await GameLogic.createGame();
     if (!mounted) return;
 
     Navigator.pushReplacement(
@@ -169,26 +168,25 @@ class _GameViewState extends State<GameView> {
   }
 
   Future<void> _initializeGame() async {
-    await GameLogic.createGame();
-
-    final game = GameLogic.getCurrentGame();
-
-    if (game != null) {
-      setState(() {});
-    }
+    currentGame = await GameLogic.createGame();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final game = GameLogic.getCurrentGame();
-
-    if (game == null) {
-      return const Center(child: CircularProgressIndicator());
+    if (!currentGame.isInitialized()) {
+      return MaterialApp(
+        title: 'Countries',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ),
+        home: const Center(child: CircularProgressIndicator()),
+      );
     }
 
-    final firstCountry = game.getCurrentCountry();
-    final secondCountry = game.getNextCountry();
-    final compareField = _getCompareField(game.getCurrentStat());
+    final firstCountry = currentGame.getCurrentCountry();
+    final secondCountry = currentGame.getNextCountry();
+    final compareField = _getCompareField(currentGame.getCurrentStat());
 
     if (firstCountry == null || secondCountry == null) {
       return const MaterialApp(
@@ -199,7 +197,7 @@ class _GameViewState extends State<GameView> {
     }
 
     final topCountry = Country(
-      game.rounds[game.currentRoundIndex],
+      currentGame.rounds[currentGame.currentRoundIndex],
       firstCountry.population,
       firstCountry.forestedArea.toDouble(),
       firstCountry.surfaceArea,
@@ -208,7 +206,7 @@ class _GameViewState extends State<GameView> {
     );
 
     final bottomCountry = Country(
-      game.rounds[game.currentRoundIndex + 1],
+      currentGame.rounds[currentGame.currentRoundIndex + 1],
       secondCountry.population,
       secondCountry.forestedArea.toDouble(),
       secondCountry.surfaceArea,
@@ -224,15 +222,15 @@ class _GameViewState extends State<GameView> {
       home: Stack(
         children: [
           MapGame(
-            selectedCountry: game.rounds[game.currentRoundIndex],
-            hiddenCountry: game.rounds[game.currentRoundIndex + 1],
+            selectedCountry: currentGame.rounds[currentGame.currentRoundIndex],
+            hiddenCountry: currentGame.rounds[currentGame.currentRoundIndex + 1],
             onTargetFound: () async {
               // show the full-screen compare overlay
               setState(() {
                 _isTimerActive = false;
               });
               print('mapview score: $_currentScore');
-              _addScore(game, _currentScore);
+              _addScore(_currentScore);
               await _openCompareModal(
                 compareField: compareField,
                 topCountry: topCountry,

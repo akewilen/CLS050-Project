@@ -3,7 +3,7 @@ import 'package:syncfusion_flutter_maps/maps.dart';
 import '../GameLogic.dart';
 import '../components/country.dart';
 import '../components/timer_indicator.dart';
-import './comapre.dart';
+import 'compare.dart';
 import './high_score.dart';
 import './home_screen.dart';
 
@@ -63,9 +63,7 @@ class _MapGameState extends State<MapGame> {
 
   @override
   Widget build(BuildContext context) {
-    final game = GameLogic.getCurrentGame();
-
-    if (_selectedIndex == null || game == null) {
+    if (_selectedIndex == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
