@@ -28,8 +28,6 @@ class _GameViewState extends State<GameView> {
 
   Future<void> _openCompareModal({
     required CountryField compareField,
-    required String topName,
-    required String bottomName,
     required Country topCountry,
     required Country bottomCountry,
   }) async {
@@ -190,8 +188,6 @@ class _GameViewState extends State<GameView> {
 
     final firstCountry = game.getCurrentCountry();
     final secondCountry = game.getNextCountry();
-    final firstCountryName = game.rounds[game.currentRoundIndex];
-    final secondCountryName = game.rounds[game.currentRoundIndex + 1];
     final compareField = _getCompareField(game.getCurrentStat());
 
     if (firstCountry == null || secondCountry == null) {
@@ -228,8 +224,8 @@ class _GameViewState extends State<GameView> {
       home: Stack(
         children: [
           MapGame(
-            selectedCountry: firstCountryName,
-            hiddenCountry: secondCountryName,
+            selectedCountry: game.rounds[game.currentRoundIndex],
+            hiddenCountry: game.rounds[game.currentRoundIndex + 1],
             onTargetFound: () async {
               // show the full-screen compare overlay
               setState(() {
@@ -239,8 +235,6 @@ class _GameViewState extends State<GameView> {
               _addScore(game, _currentScore);
               await _openCompareModal(
                 compareField: compareField,
-                topName: firstCountryName,
-                bottomName: secondCountryName,
                 topCountry: topCountry,
                 bottomCountry: bottomCountry,
               );
