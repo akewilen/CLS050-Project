@@ -29,7 +29,8 @@ class _MapGameState extends State<MapGame> {
   late MapShapeSource _shapeSource;
   late MapZoomPanBehavior _zoomPan;
   int? _selectedIndex;
-  //bool _hasSelectedCountry = false; //?
+  bool _hasSelectedCountry = false;
+  bool _countryFound = false;
 
   @override
   void initState() {
@@ -85,6 +86,7 @@ class _MapGameState extends State<MapGame> {
                 onSelectionChanged: (int index) {
                   //final tappedName = EuropeMapData.countries[index];
                   //widget.onAnyTap?.call(index, tappedName);
+                  setState(() => _selectedIndex = index);
 
                   final hiddenIndex = EuropeMapData.countries.indexWhere(
                     (c) => c == widget.hiddenCountry,
@@ -92,90 +94,42 @@ class _MapGameState extends State<MapGame> {
 
                   // Only promote the selection if it matches the target.
                   if (index == hiddenIndex) {
-                    //game.addToScore(_currentScore);
-                    setState(() => _selectedIndex = index);
-                    widget.onTargetFound();
+                    //setState(() => _selectedIndex = index);
+                    //widget.onTargetFound();
+                    _countryFound = true;
                   }
+
+                  _hasSelectedCountry = true;
                 },
               ),
             ],
           ),
           Positioned(bottom: 50, child: Text('Find: ${widget.hiddenCountry}')),
-          /*
-          if (widget.timeRestriction) Positioned(
-            top: 20,
-            left: 20,
-            child: TimerIndicator(
-              isActive: _isTimerActive,
-              onScore: _updateScore,
-              onTimeUp: _handleTimeUp,
-            ),
-          ),
-          */
-          /*
+
           Positioned(
             bottom: 16,
             right: 16,
             child: FloatingActionButton.extended(
-              onPressed: _hasSelectedCountry ? () {
-                // Check if selected country matches target
-                final selectedCountry = _selectedIndex != null ? 
-                  EuropeMapData.countries[_selectedIndex!] : null;
-                
-                if (selectedCountry == widget.selectedCountry) {
-                  // Stop this view's timer and add the map score
-                  setState(() {
-                    _isTimerActive = false;
-                  });
-                  
-                  final game = GameLogic.getCurrentGame();
-                  if (game != null && widget.timeRestriction) {
-                    // Add the map score immediately when correct country is found
-                    game.addToScore(_currentScore);
-                  }
-                  
-                  if (game != null) {
-                    final currentCountry = game.getCurrentCountry();
-                    final nextCountry = game.getNextCountry();
-                    if (currentCountry != null && nextCountry != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ComparePage(
-                            timeRestriction: widget.timeRestriction,
-                            compareField: _getCompareField(game.getCurrentStat()),
-                            topCountry: Country(
-                              game.rounds[game.currentRoundIndex],
-                              currentCountry.population,
-                              currentCountry.forestedArea.toDouble(),
-                              currentCountry.surfaceArea,
-                              currentCountry.co2Emissions.toDouble(),
-                              currentCountry.gdpPerCapita.toDouble(),
-                            ),
-                            bottomCountry: Country(
-                              game.rounds[game.currentRoundIndex + 1],
-                              nextCountry.population,
-                              nextCountry.forestedArea.toDouble(),
-                              nextCountry.surfaceArea,
-                              nextCountry.co2Emissions.toDouble(),
-                              nextCountry.gdpPerCapita.toDouble(),
-                            ),
-                            correctCallback: _onCorrect,
-                            wrongCallback: _onWrong,
-                          ),
-                        ),
-                      );
+              onPressed: _hasSelectedCountry
+                  ? () {
+                      // Check if selected country matches target
+
+                      if (_countryFound) {
+                        // Stop this view's timer and add the map score
+                        widget.onTargetFound();
+                      } else {
+                        widget.onWrong();
+                      }
                     }
-                  }
-                } else {
-                  _onWrong();
-                }
-              } : null,
-              label: Text(_hasSelectedCountry ? 'Answer' : 'Find "$_targetCountry"'),
+                  : null,
+              label: Text(
+                _hasSelectedCountry
+                    ? 'Answer'
+                    : 'Find "${widget.hiddenCountry}}"',
+              ),
               icon: Icon(_hasSelectedCountry ? Icons.check : Icons.search),
             ),
           ),
-          */
         ],
       ),
     );
