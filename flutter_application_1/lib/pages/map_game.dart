@@ -23,8 +23,18 @@ class MapGame extends StatefulWidget {
 
 class _MapGameState extends State<MapGame> {
   late MapShapeSource _shapeSource;
+  late MapShapeSource _sublayerSource;
   late MapZoomPanBehavior _zoomPan;
   late int _selectedIndex;
+  late int _wrongSelection = -1;
+
+  void handleCorrect(int index) {
+    setState(() {
+      _selectedIndex = index;
+      _wrongSelection = -1;
+    });
+    widget.onTargetFound();
+  }
 
   @override
   void initState() {
@@ -41,6 +51,16 @@ class _MapGameState extends State<MapGame> {
       primaryValueMapper: (int index) => EuropeMapData.countries[index],
       // Base color — selected color is controlled via `selectionSettings`.
       shapeColorValueMapper: (int index) => Colors.grey.shade200,
+    );
+
+    _sublayerSource = MapShapeSource.asset(
+      'assets/europe.geojson',
+      shapeDataField: 'NAME',
+      dataCount: EuropeMapData.countries.length,
+      primaryValueMapper: (int index) => EuropeMapData.countries[index],
+      shapeColorValueMapper: (int index) => Colors.transparent,
+      //dataLabelMapper: (int index) => EuropeMapData.countries[index],
+      //shapeColorMappers:
     );
 
     _zoomPan = MapZoomPanBehavior(
@@ -75,25 +95,31 @@ class _MapGameState extends State<MapGame> {
               zoomPanBehavior: _zoomPan,
               selectedIndex: _selectedIndex,
               selectionSettings: const MapSelectionSettings(
-                color: Colors.green,
+                color: Color.fromARGB(255, 121, 199, 124),
                 strokeColor: Colors.white,
                 strokeWidth: 1.2,
               ),
-
-              onSelectionChanged: (int index) {
-                //final tappedName = EuropeMapData.countries[index];
-                //widget.onAnyTap?.call(index, tappedName);
-
-                final hiddenIndex = EuropeMapData.countries.indexWhere(
-                  (c) => c == widget.hiddenCountry,
-                );
-
-                // Only promote the selection if it matches the target.
-                if (index == hiddenIndex) {
-                  setState(() => _selectedIndex = index);
-                  widget.onTargetFound();
-                }
-              },
+              sublayers: [
+                MapShapeSublayer(
+                  source: _sublayerSource,
+                  selectedIndex: _wrongSelection,
+                  selectionSettings: const MapSelectionSettings(
+                    color: Color.fromARGB(255, 241, 128, 84),
+                    strokeColor: Colors.white,
+                    strokeWidth: 1.2,
+                  ),
+                  onSelectionChanged: (int index) {
+                    final hiddenIndex = EuropeMapData.countries.indexWhere(
+                      (c) => c == widget.hiddenCountry,
+                    );
+                    if (index != hiddenIndex) {
+                      setState(() => _wrongSelection = index);
+                    } else {
+                      handleCorrect(index);
+                    }
+                  },
+                ),
+              ],
             ),
           ],
         ),
