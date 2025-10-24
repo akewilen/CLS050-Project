@@ -21,10 +21,28 @@ class MapGame extends StatefulWidget {
 
 class _MapGameState extends State<MapGame> {
   late MapShapeSource _shapeSource;
+  late MapShapeSource _sublayerSource;
   late MapZoomPanBehavior _zoomPan;
   int? _selectedIndex;
-  bool _hasSelectedCountry = false;
-  bool _countryFound = false;
+  int _wrongSelection = -1;
+  int wrongCounter = 0;
+
+  void handleCorrect(int index) {
+    setState(() {
+      _selectedIndex = index;
+      _wrongSelection = -1;
+    });
+    widget.onTargetFound();
+  }
+
+  void handleWrong(int index) {
+    wrongCounter++;
+    if (wrongCounter > 2) {
+      setState(() => _wrongSelection = 0);
+      widget.onWrong();
+    }
+    setState(() => _wrongSelection = index);
+  }
 
   @override
   void initState() {
@@ -45,6 +63,14 @@ class _MapGameState extends State<MapGame> {
       shapeColorValueMapper: (int index) => Colors.grey.shade200,
     );
 
+    _sublayerSource = MapShapeSource.asset(
+      'assets/europe.geojson',
+      shapeDataField: 'NAME',
+      dataCount: EuropeMapData.countries.length,
+      primaryValueMapper: (int index) => EuropeMapData.countries[index],
+      shapeColorValueMapper: (int index) => Colors.transparent,
+    );
+
     _zoomPan = MapZoomPanBehavior(
       enablePanning: true,
       enableDoubleTapZooming: true,
@@ -63,6 +89,7 @@ class _MapGameState extends State<MapGame> {
 
     return Scaffold(
       body: Stack(
+        //alignment: Alignment.center,
         children: [
           SfMaps(
             layers: [
@@ -71,56 +98,38 @@ class _MapGameState extends State<MapGame> {
                 zoomPanBehavior: _zoomPan,
                 selectedIndex: _selectedIndex ?? -1,
                 selectionSettings: const MapSelectionSettings(
-                  color: Colors.green,
+                  color: Color.fromARGB(255, 121, 183, 123),
                   strokeColor: Colors.white,
                   strokeWidth: 1.2,
                 ),
-                onSelectionChanged: (int index) {
-                  //final tappedName = EuropeMapData.countries[index];
-                  //widget.onAnyTap?.call(index, tappedName);
-                  setState(() => _selectedIndex = index);
-
-                  final hiddenIndex = EuropeMapData.countries.indexWhere(
-                    (c) => c == widget.hiddenCountry,
-                  );
-
-                  // Only promote the selection if it matches the target.
-                  if (index == hiddenIndex) {
-                    //setState(() => _selectedIndex = index);
-                    //widget.onTargetFound();
-                    _countryFound = true;
-                  }
-
-                  _hasSelectedCountry = true;
-                },
+                sublayers: [
+                  MapShapeSublayer(
+                    source: _sublayerSource,
+                    selectedIndex: _wrongSelection,
+                    selectionSettings: const MapSelectionSettings(
+                      color: Color.fromARGB(255, 241, 128, 84),
+                      strokeColor: Colors.white,
+                      strokeWidth: 1.2,
+                    ),
+                    onSelectionChanged: (int index) {
+                      final hiddenIndex = EuropeMapData.countries.indexWhere(
+                        (c) => c == widget.hiddenCountry,
+                      );
+                      if (index != hiddenIndex) {
+                        handleWrong(index);
+                      } else {
+                        handleCorrect(index);
+                      }
+                    },
+                  ),
+                ],
               ),
             ],
           ),
-          Positioned(bottom: 50, child: Text('Find: ${widget.hiddenCountry}')),
-
           Positioned(
             bottom: 16,
-            right: 16,
-            child: FloatingActionButton.extended(
-              onPressed: _hasSelectedCountry
-                  ? () {
-                      // Check if selected country matches target
-
-                      if (_countryFound) {
-                        // Stop this view's timer and add the map score
-                        widget.onTargetFound();
-                      } else {
-                        widget.onWrong();
-                      }
-                    }
-                  : null,
-              label: Text(
-                _hasSelectedCountry
-                    ? 'Answer'
-                    : 'Find "${widget.hiddenCountry}}"',
-              ),
-              icon: Icon(_hasSelectedCountry ? Icons.check : Icons.search),
-            ),
+            left: 16,
+            child: Text('Find: ${widget.hiddenCountry}'),
           ),
         ],
       ),
