@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _start() => Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => GameView(timeRestriction: _mode == 'timed'),
+      builder: (context) => GameView(timeRestriction: _mode == 'timed', role: PlayerRole.singleplayer, lobbyId: ""),
     ),
   );
 
@@ -50,15 +50,15 @@ class _HomeScreenState extends State<HomeScreen> {
     String lobbyId = uuid.v4().toString();
 
     db
-        .collection("lobbies")
-        .doc(lobbyId)
-        .set(lobby)
-        .onError((e, _) => print("Error writing document: $e"));
+    .collection("lobbies")
+    .doc(lobbyId)
+    .set(lobby)
+    .onError((e, _) => print("Error writing document: $e"));
 
     // screenStatus = HomescreenStatus.lobbyAdmin;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId)),
+      MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId, isHost: true)),
     );
   }
 
@@ -79,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => LobbyScreen(lobbyId: lobbyId),
+            builder: (context) => LobbyScreen(lobbyId: lobbyId, isHost: false,),
           ),
         );
       }, onError: (e) => print("Error getting document: $e"));
@@ -164,14 +164,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ElevatedButton.icon(
           icon: const Icon(Icons.delete),
           label: const Text('Delete Lobby'),
-          onPressed: _createLobby,
+          onPressed: () => print("TODO"),
           style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
         ),
         const SizedBox(height: 12),
         ElevatedButton.icon(
           icon: const Icon(Icons.login),
           label: const Text('Start Game'),
-          onPressed: () => _joinLobby(context),
+          onPressed: () => print("TODO"),
           style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
         ),
       ],

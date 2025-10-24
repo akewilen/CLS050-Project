@@ -8,7 +8,7 @@ Map<String, dynamic> setupLobby(String hostId, String hostName, int totalRounds)
   return {
     "status": GameStatus.lobby.value,
     "totalRounds": totalRounds, // Dynamically set
-    "currentRound": 0,
+    "currentRound": 1,
     "hostId": hostId, // Dynamically set
     "guestId": null,
     "players": {
@@ -16,14 +16,12 @@ Map<String, dynamic> setupLobby(String hostId, String hostName, int totalRounds)
       hostId: {
         "name": hostName, // Dynamically set
         "score": 0,
-        "readyForNextRound": false,
-        "lastAnswerTime": null
       }
     },
     "roundInfo": {
-      "questionText": null,
-      "correctAnswer": null,
-      "roundStartTime": null,
+      "topCountry": null,
+      "bottomCountry": null,
+      "roundEndTime": null,
       "roundWinnerId": null
     },
     "metadata": {
@@ -35,7 +33,10 @@ Map<String, dynamic> setupLobby(String hostId, String hostName, int totalRounds)
 enum GameStatus {
   // Each constant has an associated string 'value'
   lobby('lobby'),
-  playing('playing'),
+  waitingRoundInfo('waitingRoundInfo'),
+  finishedRound('finishedRound'),
+  playingMap('playingMap'),
+  playingCompare('playingCompare'),
   finished('finished'),
   canceled('canceled');
 

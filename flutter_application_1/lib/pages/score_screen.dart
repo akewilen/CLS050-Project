@@ -42,7 +42,7 @@ class ScoreScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            GameView(timeRestriction: timeRestriction),
+                            GameView(timeRestriction: timeRestriction, role: PlayerRole.singleplayer, lobbyId: ""),
                       ),
                     );
                   },

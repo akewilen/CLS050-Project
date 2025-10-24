@@ -1,19 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_1/components/country.dart';
 
 // -----------------------------
 // Main Game Lobby Class
 // -----------------------------
 class GameLobby {
   final String id; // The Firestore document ID
-  final int currentRound;
-  final String? guestId;
-  final String hostId;
-  final Map<String, dynamic> metadata;
-  final Timestamp createdAt;
-  final Map<String, Player> players;
-  final RoundInfo roundInfo;
-  final String status;
+
+  String status;
   final int totalRounds;
+  int currentRound;
+  String hostId;
+  String? guestId;
+  Map<String, Player> players;
+  final Timestamp createdAt;
+  RoundInfo roundInfo;
+  final Map<String, dynamic> metadata;
 
   GameLobby({
     required this.id,
@@ -27,6 +29,21 @@ class GameLobby {
     required this.status,
     required this.totalRounds,
   });
+
+  static GameLobby createEmptyLobby() {
+    return GameLobby(
+      id: "empty",
+      currentRound: 0,
+      hostId: "default_host_id",
+      metadata: {},
+      createdAt: Timestamp.now(),
+      players: {},
+      roundInfo: RoundInfo(),
+      status: "LOBBY_EMPTY",
+      totalRounds: 0,
+      guestId: null,
+    );
+  }
 
   // Factory constructor to create a GameLobby from a Firestore document
   factory GameLobby.fromFirestore(DocumentSnapshot doc) {
@@ -119,24 +136,27 @@ class Player {
 // Nested RoundInfo Class
 // -----------------------------
 class RoundInfo {
-  final String? correctAnswer; // Assuming answer is a string, adjust if needed
-  final String? questionText;
-  final Timestamp? roundStartTime;
+  final Country? topCountry; // Assuming answer is a string, adjust if needed
+  final Country? bottomCountry;
+  final String? statistic;
+  final Timestamp? roundEndTime;
   final String? roundWinnerId;
 
   RoundInfo({
-    this.correctAnswer,
-    this.questionText,
-    this.roundStartTime,
+    this.topCountry,
+    this.bottomCountry,
+    this.statistic,
+    this.roundEndTime,
     this.roundWinnerId,
   });
 
   // Factory constructor to create a RoundInfo from a map
   factory RoundInfo.fromMap(Map<String, dynamic> data) {
     return RoundInfo(
-      correctAnswer: data['correctAnswer'],
-      questionText: data['questionText'],
-      roundStartTime: data['roundStartTime'] as Timestamp?,
+      topCountry: data['topCountry'],
+      bottomCountry: data['bottomCountry'],
+      statistic: data['statistic'],
+      roundEndTime: data['roundStartTime'] as Timestamp?,
       roundWinnerId: data['roundWinnerId'],
     );
   }
@@ -144,9 +164,12 @@ class RoundInfo {
   // Method to convert a RoundInfo instance to a Map
   Map<String, dynamic> toJson() {
     return {
-      'correctAnswer': correctAnswer,
-      'questionText': questionText,
-      'roundStartTime': roundStartTime,
+      // Use the null-aware spread operator (?.) and .toJson()
+      // If topCountry is null, this property becomes null in the map.
+      'topCountry': topCountry?.toJson(),
+      'bottomCountry': bottomCountry?.toJson(),
+      'statistic': statistic,
+      'roundEndTime': roundEndTime,
       'roundWinnerId': roundWinnerId,
     };
   }

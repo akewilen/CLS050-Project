@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_application_1/GameLogic.dart';
 import 'package:flutter_application_1/components/lobby.dart';
 import 'package:flutter_application_1/multiplayer/firestoreClasses.dart';
+import 'package:flutter_application_1/pages/game_view.dart';
 import 'package:flutter_application_1/pages/home_screen.dart';
 
 class LobbyScreen extends StatefulWidget {
   final String lobbyId;
+  final bool isHost;
 
-  const LobbyScreen({Key? key, required this.lobbyId}) : super(key: key);
+  const LobbyScreen({Key? key, required this.lobbyId, required this.isHost}) : super(key: key);
 
   @override
   _LobbyScreenState createState() => _LobbyScreenState();
@@ -16,7 +19,7 @@ class LobbyScreen extends StatefulWidget {
 
 class _LobbyScreenState extends State<LobbyScreen> {
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _lobbyStream;
-  StreamSubscription? _lobbySubscription; // 1. To manage the listener
+  StreamSubscription? _lobbySubscription;
 
   @override
   void initState() {
@@ -39,10 +42,14 @@ class _LobbyScreenState extends State<LobbyScreen> {
         final doc = docSnapshot as DocumentSnapshot<Object?>;
         final lobby = GameLobby.fromFirestore(doc);
 
-        if (lobby.status == GameStatus.playing.value) {
+        if (lobby.status == GameStatus.waitingRoundInfo.value) {
           _lobbySubscription?.cancel();
 
-          print("Host started the game. Implement game functionality");
+          if (widget.isHost) {
+            _startMultiplayerAsHost(widget.lobbyId);
+          } else {
+            _startMultiplayerAsGuest(widget.lobbyId);
+          }
         }
       },
       onError: (error) {
@@ -56,6 +63,20 @@ class _LobbyScreenState extends State<LobbyScreen> {
     _lobbySubscription?.cancel();
     super.dispose();
   }
+
+  void _startMultiplayerAsHost(String id) => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => GameView(timeRestriction: false, role: PlayerRole.multiplayerHost, lobbyId: id),
+    ),
+  );
+
+  void _startMultiplayerAsGuest(String id) => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => GameView(timeRestriction: false, role: PlayerRole.multiplayerGuest, lobbyId: id,),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +111,7 @@ class _LobbyScreenState extends State<LobbyScreen> {
                 onPressed: () {
                   final docRef = FirebaseFirestore.instance.collection("lobbies").doc(lobby.id);
                   docRef.update({
-                    "status": GameStatus.playing.value,
+                    "status": GameStatus.waitingRoundInfo.value,
                   });
                 },
               )
