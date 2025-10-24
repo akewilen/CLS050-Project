@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
           "lastAnswerTime": null,
         };
 
-        docRef.update({"guestId": "2", "players.2": guestPlayerData});
+        docRef.update({"guestId": "2", "players.guest": guestPlayerData});
         Navigator.push(
           context,
           MaterialPageRoute(

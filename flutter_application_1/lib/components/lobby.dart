@@ -13,7 +13,7 @@ Map<String, dynamic> setupLobby(String hostId, String hostName, int totalRounds)
     "guestId": null,
     "players": {
       // Use bracket notation to dynamically set the player key using the hostId
-      hostId: {
+      "host": {
         "name": hostName, // Dynamically set
         "score": 0,
       }
@@ -31,13 +31,23 @@ Map<String, dynamic> setupLobby(String hostId, String hostName, int totalRounds)
 }
 
 enum GameStatus {
-  // Each constant has an associated string 'value'
+  // Each constant has an associated string 'value' because Firestore requires strings
+  // The host is in the lobby. Possible with the guest player.
   lobby('lobby'),
+
+  // Waiting for the information to start the next round.
   waitingRoundInfo('waitingRoundInfo'),
+
+  // A round is done.
   finishedRound('finishedRound'),
+
+  // Both players are playing.
   playingMap('playingMap'),
-  playingCompare('playingCompare'),
+
+  // The game has finished
   finished('finished'),
+
+  // One player has left the game
   canceled('canceled');
 
   // The field to hold the string

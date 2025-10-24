@@ -87,6 +87,11 @@ class _GameViewState extends State<GameView> {
     // Only the host needs to control the lobby
     if (widget.role != PlayerRole.multiplayerHost) return;
 
+    if (widget.lobbyId.isEmpty) {
+        print("Error: Lobby ID is null or empty. Cannot write document.");
+        return;
+      }
+
     // Upload the current round info to the server
     if (lobby.status == GameStatus.waitingRoundInfo.value) {
       print("Host will upload round to server.");
@@ -96,11 +101,6 @@ class _GameViewState extends State<GameView> {
 
       if ((top == null) || (bottom == null)) {
         print("Error when reacting to round change. Top or bottom country was not loaded hence cannot update the server.");
-        return;
-      }
-
-      if (widget.lobbyId.isEmpty) {
-        print("Error: Lobby ID is null or empty. Cannot write document.");
         return;
       }
 
@@ -122,10 +122,32 @@ class _GameViewState extends State<GameView> {
 
       docRef.update(updateData)
         .then((_) {
-          print("Lobby document successfully written!");
+          print("Successfully pushed new round to Firestore!");
         })
         .catchError((e) {
-          print("Error writing document to Firestore: $e");
+          print("Error pushing new round to Firestore: $e");
+        });
+      return;
+    }
+
+    if (lobby.status == GameStatus.finishedRound.value) {
+      // TODO: add score the the player that won the round.
+      final bool nextRound = currentGame.hasNextRound();
+      if (nextRound) {
+        currentGame.nextRound();
+      }
+      final Map<String, dynamic> updateData = {
+        'status': nextRound ? GameStatus.waitingRoundInfo.value : GameStatus.finished.value,
+      };
+
+      final docRef = db.collection("lobbies").doc(widget.lobbyId);
+
+      docRef.update(updateData)
+        .then((_) {
+          print("Successfully pushed finishing state to Firestore!");
+        })
+        .catchError((e) {
+          print("Error writing finishing state to Firestore: $e");
         });
       return;
     }
@@ -152,6 +174,10 @@ class _GameViewState extends State<GameView> {
 
         // When a round finishes and status is 'waiting', the host will react.
         if (lobby.status == GameStatus.waitingRoundInfo.value) {
+          reactToLobby();
+        }
+
+        if (lobby.status == GameStatus.finishedRound.value) {
           reactToLobby();
         }
       },
@@ -228,24 +254,49 @@ class _GameViewState extends State<GameView> {
   }
 
   void _onCorrect() async {
-    setState(() {
-      _isCompareTimerActive = false;
-    });
-    print('compareview score: $_currentScore');
-    _addScore(_currentScore);
-    await currentGame.nextRound();
-    if (!mounted) return;
+    if (widget.role == PlayerRole.singleplayer) {
+      setState(() {
+        _isCompareTimerActive = false;
+      });
+      print('compareview score: $_currentScore');
+      _addScore(_currentScore);
+      await currentGame.nextRound();
+      if (!mounted) return;
 
-    // Pop back to map view
-    Navigator.pop(context);
+      // Pop back to map view
+      Navigator.pop(context);
 
-    // Reset state for new round
-    setState(() {
-      _currentScore = 50;
-      //_selectedIndex = null;
-      //_hasSelectedCountry = false;
-      _isMapTimerActive = true; // Restart timer for new round
-    });
+      // Reset state for new round
+      setState(() {
+        _currentScore = 50;
+        //_selectedIndex = null;
+        //_hasSelectedCountry = false;
+        _isMapTimerActive = true; // Restart timer for new round
+      });
+      return;
+    }
+    final RoundInfo oldRound = lobby.roundInfo;
+    final Map<String, dynamic> newRoundInfo = RoundInfo(
+      topCountry: oldRound.topCountry,
+      bottomCountry: oldRound.bottomCountry,
+      statistic: oldRound.statistic,
+      roundEndTime: null,
+      roundWinnerId: (widget.role == PlayerRole.multiplayerHost) ? "host" : "guest",
+    ).toJson();
+
+    final Map<String, dynamic> updateData = {
+      'roundInfo': newRoundInfo,
+      'status': GameStatus.finishedRound.value,
+    };
+
+    final docRef = db.collection("lobbies").doc(widget.lobbyId);
+    docRef.update(updateData)
+      .then((_) {
+        print("Winner of this round has updated the lobby!");
+      })
+      .catchError((e) {
+        print("Error writing document to Firestore: $e");
+      });
   }
 
   void _onWrong() async {
@@ -376,12 +427,6 @@ class _GameViewState extends State<GameView> {
     }
 
     if (lobby.status == GameStatus.playingMap.value) {
-      print("Guessing on the map!");
-      print("Topcountry: ${round.topCountry!.name}");
-      print("Bottomcountry: ${round.bottomCountry!.name}");
-      print("Statistic: ${round.statistic!}");
-
-      // Return the Stack directly
       return Stack(
         children: [
           MapGame(
@@ -391,7 +436,6 @@ class _GameViewState extends State<GameView> {
               setState(() {
                 _isMapTimerActive = false;
               });
-              _addScore(_currentScore);
               await _openCompareModal(
                 compareField: _getCompareField(round.statistic!),
                 topCountry: round.topCountry!,
