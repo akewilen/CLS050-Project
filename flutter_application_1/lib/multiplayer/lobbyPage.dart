@@ -19,7 +19,6 @@ class LobbyScreen extends StatefulWidget {
 
 class _LobbyScreenState extends State<LobbyScreen> {
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _lobbyStream;
-  StreamSubscription? _lobbySubscription;
 
   @override
   void initState() {
@@ -28,40 +27,6 @@ class _LobbyScreenState extends State<LobbyScreen> {
         .collection('lobbies')
         .doc(widget.lobbyId)
         .snapshots();
-
-    _subscribeToLobbyUpdates();
-  }
-
-  void _subscribeToLobbyUpdates() {
-    _lobbySubscription = _lobbyStream.listen(
-      (docSnapshot) {
-        // Check if the document exists and the widget is still on screen
-        if (!docSnapshot.exists || !mounted) {
-          return;
-        }
-        final doc = docSnapshot as DocumentSnapshot<Object?>;
-        final lobby = GameLobby.fromFirestore(doc);
-
-        if (lobby.status == GameStatus.waitingRoundInfo.value) {
-          _lobbySubscription?.cancel();
-
-          if (widget.isHost) {
-            _startMultiplayerAsHost(widget.lobbyId);
-          } else {
-            _startMultiplayerAsGuest(widget.lobbyId);
-          }
-        }
-      },
-      onError: (error) {
-        print("Lobby stream error: $error");
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _lobbySubscription?.cancel();
-    super.dispose();
   }
 
   void _startMultiplayerAsHost(String id) => Navigator.push(
@@ -84,21 +49,36 @@ class _LobbyScreenState extends State<LobbyScreen> {
       stream: _lobbyStream,
       builder: (BuildContext context,
           AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
-        if (snapshot.hasError) {
-          return const Text('Something went wrong');
-        }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Text("Loading");
+          return const Scaffold(body: Center(child: Text("Loading...")));
+        }
+
+        if (snapshot.hasError) {
+          print("StreamBuilder error: ${snapshot.error}");
+          return const Scaffold(body: Center(child: Text('Something went wrong')));
         }
 
         if (!snapshot.hasData || !snapshot.data!.exists) {
-          return const Text("Lobby not found");
+          return const Scaffold(body: Center(child: Text("Lobby not found")));
         }
 
-        // extract the inner DocumentSnapshot and cast to the expected type
         final doc = snapshot.data! as DocumentSnapshot<Object?>;
         final lobby = GameLobby.fromFirestore(doc);
+
+        if (lobby.status == GameStatus.waitingRoundInfo.value) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              if (widget.isHost) {
+                _startMultiplayerAsHost(widget.lobbyId);
+              } else {
+                _startMultiplayerAsGuest(widget.lobbyId);
+              }
+            }
+          });
+
+          return const Scaffold(body: Center(child: Text("Starting game...")));
+        }
 
         return Scaffold(
           body: Column(

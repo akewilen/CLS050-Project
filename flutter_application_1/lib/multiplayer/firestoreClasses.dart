@@ -75,7 +75,6 @@ class GameLobby {
 
   // Method to convert a GameLobby instance to a Map for Firestore
   Map<String, dynamic> toJson() {
-    // Convert the 'players' map back to a Firestore-compatible format
     Map<String, dynamic> playersMap = {};
     players.forEach((playerId, player) {
       playersMap[playerId] = player.toJson();
@@ -91,7 +90,33 @@ class GameLobby {
       'roundInfo': roundInfo.toJson(),
       'status': status,
       'totalRounds': totalRounds,
+      'id': id,
     };
+  }
+
+factory GameLobby.fromJson(Map<String, dynamic> data) {
+    // Parse the nested 'players' map (same logic as in fromFirestore)
+    Map<String, Player> parsedPlayers = {};
+    if (data['players'] != null) {
+      (data['players'] as Map<String, dynamic>).forEach((playerId, playerData) {
+        parsedPlayers[playerId] =
+            Player.fromMap(playerData as Map<String, dynamic>);
+      });
+    }
+
+    return GameLobby(
+      id: data['id'] as String,
+      currentRound: data['currentRound'] as int,
+      guestId: data['guestId'] as String?,
+      hostId: data['hostId'] as String,
+      metadata: data['metadata'] as Map<String, dynamic>? ?? {},
+      createdAt: data['createdAt'] as Timestamp,
+      players: parsedPlayers,
+      roundInfo:
+          RoundInfo.fromMap(data['roundInfo'] as Map<String, dynamic>),
+      status: data['status'] as String,
+      totalRounds: data['totalRounds'] as int,
+    );
   }
 }
 
@@ -136,7 +161,7 @@ class Player {
 // Nested RoundInfo Class
 // -----------------------------
 class RoundInfo {
-  final Country? topCountry; // Assuming answer is a string, adjust if needed
+  final Country? topCountry;
   final Country? bottomCountry;
   final String? statistic;
   final Timestamp? roundEndTime;
@@ -150,22 +175,25 @@ class RoundInfo {
     this.roundWinnerId,
   });
 
-  // Factory constructor to create a RoundInfo from a map
   factory RoundInfo.fromMap(Map<String, dynamic> data) {
     return RoundInfo(
-      topCountry: data['topCountry'],
-      bottomCountry: data['bottomCountry'],
-      statistic: data['statistic'],
-      roundEndTime: data['roundStartTime'] as Timestamp?,
-      roundWinnerId: data['roundWinnerId'],
+      topCountry: data['topCountry'] == null
+          ? null
+          : Country.fromJson(data['topCountry'] as Map<String, dynamic>),
+
+      bottomCountry: data['bottomCountry'] == null
+          ? null
+          : Country.fromJson(data['bottomCountry'] as Map<String, dynamic>),
+
+      statistic: data['statistic'] as String?,
+      roundEndTime: data['roundEndTime'] as Timestamp?, 
+      roundWinnerId: data['roundWinnerId'] as String?,
     );
   }
 
   // Method to convert a RoundInfo instance to a Map
   Map<String, dynamic> toJson() {
     return {
-      // Use the null-aware spread operator (?.) and .toJson()
-      // If topCountry is null, this property becomes null in the map.
       'topCountry': topCountry?.toJson(),
       'bottomCountry': bottomCountry?.toJson(),
       'statistic': statistic,

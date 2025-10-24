@@ -17,6 +17,18 @@ class Country {
     this.gdpPerCapita,
   );
 
+  // Factory constructor to create a Country from a JSON map
+  factory Country.fromJson(Map<String, dynamic> json) {
+    return Country(
+      json['name'] as String? ?? 'Unknown',
+      json['population'] as int? ?? 0,
+      (json['forestedArea'] as num?)?.toDouble() ?? 0.0,
+      json['surfaceArea'] as int? ?? 0,
+      (json['co2Emissions'] as num?)?.toDouble() ?? 0.0,
+      (json['gdpPerCapita'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
   static Country fromCountryData(String name, CountryData data) {
     return Country(
       name,

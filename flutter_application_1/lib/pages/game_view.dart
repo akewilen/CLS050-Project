@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/API.dart';
 import 'package:flutter_application_1/components/lobby.dart';
@@ -20,7 +19,7 @@ enum PlayerRole {
 }
 
 class GameView extends StatefulWidget {
-  GameView({
+  const GameView({
     super.key,
     required this.timeRestriction,
     required this.role,
@@ -28,10 +27,8 @@ class GameView extends StatefulWidget {
   });
 
   final bool timeRestriction;
-  //final String compareCountry;
-
   final PlayerRole role;
-  String lobbyId;
+  final String lobbyId;
 
   @override
   State<GameView> createState() => _GameViewState();
@@ -42,8 +39,8 @@ class _GameViewState extends State<GameView> {
   bool _isMapTimerActive = true;
   bool _isCompareTimerActive = true;
   Game currentGame = Game();
-  bool isReacting = false;
 
+  // --- Multiplayer properties ---
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _lobbyStream;
   StreamSubscription? _lobbySubscription;
   final db = FirebaseFirestore.instance;
@@ -63,55 +60,51 @@ class _GameViewState extends State<GameView> {
 
   Future<void> _initializeGame() async {
     currentGame = await GameLogic.createGame();
+
     if (widget.role != PlayerRole.singleplayer) {
       _lobbyStream = FirebaseFirestore.instance
-        .collection('lobbies')
-        .doc(widget.lobbyId)
-        .snapshots();
+          .collection('lobbies')
+          .doc(widget.lobbyId)
+          .snapshots();
+
       final docRef = db.collection("lobbies").doc(widget.lobbyId);
       var doc = await docRef.get();
+
+      if (!mounted) return;
+
       lobby = GameLobby.fromFirestore(doc);
+      print("initial lobby: ${lobby.toJson()}");
+
       subscribeToLobbyUpdates();
+      reactToLobby();
     }
+
+    // Call setState *after* game is initialized to trigger the build.
     setState(() {});
   }
 
-  void reactToLobby() async {
-    if (widget.role == PlayerRole.multiplayerHost) print("Reacting to the lobby as host!");
-    if (widget.role == PlayerRole.multiplayerGuest) print("Reacting to the lobby as guest!");
-
+  void reactToLobby() {
     // Only the host needs to control the lobby
     if (widget.role != PlayerRole.multiplayerHost) return;
 
     // Upload the current round info to the server
     if (lobby.status == GameStatus.waitingRoundInfo.value) {
-      print("We are waiting for the current round!");
+      print("Host will upload round to server.");
       Country? top = getTopCountry();
       Country? bottom = getBottomCountry();
       String currentStat = currentGame.getCurrentStat();
 
       if ((top == null) || (bottom == null)) {
-        print("Error when reacting to lobby change. Top or bottom country was not loaded hence cannot update the server.");
+        print("Error when reacting to round change. Top or bottom country was not loaded hence cannot update the server.");
         return;
       }
-
-      var updatedLobby = lobby;
-      updatedLobby.roundInfo = RoundInfo(
-        topCountry: top,
-        bottomCountry: bottom,
-        statistic: currentStat,
-        roundEndTime: null,
-        roundWinnerId: null,
-        );
-      updatedLobby.currentRound = currentGame.currentRoundIndex;
-      updatedLobby.status = GameStatus.playingMap.value;
 
       if (widget.lobbyId.isEmpty) {
         print("Error: Lobby ID is null or empty. Cannot write document.");
         return;
       }
 
-      final Map<String, dynamic> newRoundInfoMap = RoundInfo(
+      final Map<String, dynamic> newRoundInfo = RoundInfo(
         topCountry: top,
         bottomCountry: bottom,
         statistic: currentStat,
@@ -120,34 +113,22 @@ class _GameViewState extends State<GameView> {
       ).toJson();
 
       final Map<String, dynamic> updateData = {
-        'roundInfo': newRoundInfoMap,
-        'currentRound': lobby.currentRound,
+        'roundInfo': newRoundInfo,
+        'currentRound': currentGame.currentRoundIndex,
         'status': GameStatus.playingMap.value,
       };
 
-      print("Lobby ID: ${widget.lobbyId}");
+      final docRef = db.collection("lobbies").doc(widget.lobbyId);
 
-      try {
-        await db
-        .collection("lobbies")
-        .doc(widget.lobbyId)
-        .update(updateData);
-        print("Lobby document successfully written!");
-      } catch (e) {
-        print("Error writing document to Firestore: $e");
-      }
+      docRef.update(updateData)
+        .then((_) {
+          print("Lobby document successfully written!");
+        })
+        .catchError((e) {
+          print("Error writing document to Firestore: $e");
+        });
+      return;
     }
-    // Round has finished. Fetch new information for the next round
-    if (lobby.status == GameStatus.finishedRound.value) {
-      // Update the lobby to finished if there are no more rounds left
-      if (!currentGame.hasNextRound()) {
-        UnimplementedError();
-      }
-      await currentGame.nextRound();
-      // Update the lobby with next round
-    }
-
-    isReacting = false;
   }
 
   void subscribeToLobbyUpdates() {
@@ -157,20 +138,21 @@ class _GameViewState extends State<GameView> {
         if (!docSnapshot.exists || !mounted) {
           return;
         }
-        final doc = docSnapshot as DocumentSnapshot<Object?>;
-        lobby = GameLobby.fromFirestore(doc);
-        setState(() {
-        });
+
+        lobby = GameLobby.fromFirestore(docSnapshot);
+        print("New lobby: ${lobby.toJson()}");
+
+        // Update the UI with the new lobby
+        setState(() {});
 
         if ((lobby.status == GameStatus.finished.value) || (lobby.status == GameStatus.canceled.value)) {
           _lobbySubscription?.cancel();
           return;
         }
 
-        // Check to prevent a loop where you keep reacting
-        if (!isReacting) {
-          isReacting = true;
-          Future.microtask(() => reactToLobby());
+        // When a round finishes and status is 'waiting', the host will react.
+        if (lobby.status == GameStatus.waitingRoundInfo.value) {
+          reactToLobby();
         }
       },
       onError: (error) {
@@ -200,7 +182,6 @@ class _GameViewState extends State<GameView> {
     required Country topCountry,
     required Country bottomCountry,
   }) async {
-    // showGeneralDialog pushes a *modal route*, not a new page in your app flow.
     _isCompareTimerActive = true;
     await showGeneralDialog<bool>(
       context: context,
@@ -209,25 +190,21 @@ class _GameViewState extends State<GameView> {
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (_, __, ___) {
         return Material(
-          color: Colors.black, // or Colors.transparent + your own Scaffold
+          color: Colors.black,
           child: Stack(
             children: [
               ComparePage(
                 compareField: compareField,
                 topCountry: topCountry,
                 bottomCountry: bottomCountry,
-                // When correct: call your game logic, then close the modal.
                 correctCallback: () {
-                  // your existing onCorrect:
                   _onCorrect();
                 },
-                // When wrong: keep modal open, but let your game logic react.
                 wrongCallback: () {
                   _onWrong();
                 },
                 roundNumber: currentGame.currentRoundIndex,
               ),
-              // Show the timer if there is a time restriction active.
               if (widget.timeRestriction)
                 Positioned(
                   top: 20,
@@ -256,7 +233,6 @@ class _GameViewState extends State<GameView> {
     });
     print('compareview score: $_currentScore');
     _addScore(_currentScore);
-    // Points have already been added in the compare view
     await currentGame.nextRound();
     if (!mounted) return;
 
@@ -331,44 +307,96 @@ class _GameViewState extends State<GameView> {
     }
   }
 
+  // --- (Screen building functions) ---
   Widget _singlePlayerScreen(BuildContext context) {
     final compareField = _getCompareField(currentGame.getCurrentStat());
     final Country? topCountry = getTopCountry();
     final Country? bottomCountry = getBottomCountry();
 
     if (topCountry == null || bottomCountry == null) {
-      return const MaterialApp(
-        home: Scaffold(
-          body: Center(child: Text('Error: Countries not loaded')),
+      return const Center(child: Text('Error: Countries not loaded'));
+    }
+
+    // Return the Stack directly
+    return Stack(
+      children: [
+        MapGame(
+          selectedCountry: currentGame.rounds[currentGame.currentRoundIndex],
+          hiddenCountry: currentGame.rounds[currentGame.currentRoundIndex + 1],
+          onTargetFound: () async {
+            setState(() {
+              _isMapTimerActive = false;
+            });
+            print('mapview score: $_currentScore');
+            _addScore(_currentScore);
+            await _openCompareModal(
+              compareField: compareField,
+              topCountry: topCountry,
+              bottomCountry: bottomCountry,
+            );
+          },
+          onWrong: _onWrong,
+        ),
+        if (widget.timeRestriction)
+          Positioned(
+            top: 20,
+            right: 20,
+            child: TimerIndicator(
+              isActive: _isMapTimerActive,
+              onScore: _updateScore,
+              onTimeUp: _handleTimeUp,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _multiPlayerScreen(BuildContext context) {
+    if (lobby.status == GameStatus.waitingRoundInfo.value) {
+      print("Waiting for the next round!");
+      // Return the Center widget directly
+      return const Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text("Waiting for the next round..."),
+            SizedBox(width: 10),
+            CircularProgressIndicator(),
+          ],
         ),
       );
     }
 
-    return MaterialApp(
-      title: 'Countries',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: Stack(
+    final RoundInfo round = lobby.roundInfo;
+
+    if ((round.topCountry == null) || (round.bottomCountry == null) || (round.statistic == null)) {
+      return const Center(
+        child: Text("Error: Round data is missing from the lobby."),
+      );
+    }
+
+    if (lobby.status == GameStatus.playingMap.value) {
+      print("Guessing on the map!");
+      print("Topcountry: ${round.topCountry!.name}");
+      print("Bottomcountry: ${round.bottomCountry!.name}");
+      print("Statistic: ${round.statistic!}");
+
+      // Return the Stack directly
+      return Stack(
         children: [
           MapGame(
-            selectedCountry: currentGame.rounds[currentGame.currentRoundIndex],
-            hiddenCountry:
-                currentGame.rounds[currentGame.currentRoundIndex + 1],
+            selectedCountry: round.topCountry!.name,
+            hiddenCountry: round.bottomCountry!.name,
             onTargetFound: () async {
-              // show the full-screen compare overlay
               setState(() {
                 _isMapTimerActive = false;
               });
-              print('mapview score: $_currentScore');
               _addScore(_currentScore);
               await _openCompareModal(
-                compareField: compareField,
-                topCountry: topCountry,
-                bottomCountry: bottomCountry,
+                compareField: _getCompareField(round.statistic!),
+                topCountry: round.topCountry!,
+                bottomCountry: round.bottomCountry!,
               );
-              // Uncomment setState to reselct the first country when guessed wrong
-              //setState(() {});
             },
             onWrong: _onWrong,
           ),
@@ -382,91 +410,34 @@ class _GameViewState extends State<GameView> {
                 onTimeUp: _handleTimeUp,
               ),
             ),
-          ],
-        ),
-      );
-  }
-
-  Widget _multiPlayerScreen(BuildContext context) {
-    if (lobby.status == GameStatus.waitingRoundInfo.value) {
-      print("Waiting for the next round!");
-      return MaterialApp(
-        title: 'Countries',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        ),
-        home: const Center(child:
-          Row(children: [Text("Waiting for the next round"), CircularProgressIndicator()])),
+        ],
       );
     }
 
-    final RoundInfo round = lobby.roundInfo;
-
-    if ((round.topCountry == null) || (round.bottomCountry == null) || (round.statistic == null)) {
-      UnimplementedError("The database contains no countries. Nothing can be displayed for the player!");
-    }
-
-    if (lobby.status == GameStatus.playingMap.value) {
-      print("Guessing on the map!");
-      print("Topcountry: ${round.topCountry!.name}");
-      print("Bottomcountry: ${round.bottomCountry!.name}");
-      print("Statistic: ${round.statistic!}");
-      return MaterialApp(
-        title: 'Countries',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        ),
-        home: Stack(
-          children: [
-            MapGame(
-            selectedCountry: round.topCountry!.name,
-            hiddenCountry: round.bottomCountry!.name,
-            onTargetFound: () async {
-              // show the full-screen compare overlay
-              setState(() {
-                _isMapTimerActive = false;
-              });
-              _addScore(_currentScore);
-              await _openCompareModal(
-                compareField: _getCompareField(round.statistic!),
-                topCountry: round.topCountry!,
-                bottomCountry: round.bottomCountry!,
-              );
-              // Uncomment setState to reselct the first country when guessed wrong
-              //setState(() {});
-            },
-            onWrong: _onWrong,
-          ),
-          ]
-        )
-      );
-    }
-    return MaterialApp(
-      title: 'Countries',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: Text("Not implemented!"),
+    // Fallback for others
+    return Center(
+      child: Text("Not implemented for status: ${lobby.status}"),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!currentGame.isInitialized()) {
-      return MaterialApp(
-        title: 'Countries',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        ),
-        home: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    return Scaffold(
+      body: Builder(
+        builder: (context) {
+          // Show loading indicator if game isn't ready
+          if (!currentGame.isInitialized()) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-    if (widget.role == PlayerRole.singleplayer) {
-      return _singlePlayerScreen(context);
-    }
-    else {
-      return _multiPlayerScreen(context);
-    }
+          // Show the correct screen based on role
+          if (widget.role == PlayerRole.singleplayer) {
+            return _singlePlayerScreen(context);
+          } else {
+            return _multiPlayerScreen(context);
+          }
+        },
+      ),
+    );
   }
 }
