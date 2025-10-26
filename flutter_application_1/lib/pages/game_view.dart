@@ -657,13 +657,35 @@ class _GameViewState extends State<GameView> {
               setState(() {
                 _isMapTimerActive = false;
               });
+              print('mapview score: $_currentScore');
+              
+              // Update map view score in database
+              final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host' : 'players.guest';
+              final int currentPlayerScore = widget.role == PlayerRole.multiplayerHost 
+                  ? (lobby.players['host']?.score ?? 0) 
+                  : (lobby.players['guest']?.score ?? 0);
+              
+              final docRef = db.collection("lobbies").doc(widget.lobbyId);
+              await docRef.update({
+                '$playerPath.score': currentPlayerScore + _currentScore,
+              });
+              
               await _openCompareModal(
                 compareField: _getCompareField(round.statistic!),
                 topCountry: round.topCountry!,
                 bottomCountry: round.bottomCountry!,
               );
             },
-            onWrong: _onWrong,
+            onWrong: () async {
+              setState(() {
+                _isMapTimerActive = false;
+              });
+              await _openCompareModal(
+                compareField: _getCompareField(round.statistic!),
+                topCountry: round.topCountry!,
+                bottomCountry: round.bottomCountry!,
+              );
+            },
           ),
           if (widget.timeRestriction)
             Positioned(
