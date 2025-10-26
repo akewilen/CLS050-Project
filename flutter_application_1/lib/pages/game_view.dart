@@ -219,6 +219,10 @@ class _GameViewState extends State<GameView> {
         }
 
         lobby = GameLobby.fromFirestore(docSnapshot);
+        if (widget.role == PlayerRole.multiplayerHost) {
+          print("The new lobby has been receiveD!");
+          print(lobby.toJson());
+        }
 
         // Update the UI with the new lobby
         setState(() {});
@@ -321,7 +325,7 @@ class _GameViewState extends State<GameView> {
                 wrongCallback: () {
                   _onWrong();
                 },
-                roundNumber: currentGame.currentRoundIndex,
+                roundNumber: lobby.currentRound,
               ),
               if (widget.timeRestriction)
                 Positioned(
@@ -639,10 +643,10 @@ class _GameViewState extends State<GameView> {
 
     if (lobby.status == GameStatus.playingMap.value) {
       // Both players should stay in sync with lobby round
-      if (currentGame.currentRoundIndex != lobby.currentRound) {
-        print("Syncing game round from ${currentGame.currentRoundIndex} to ${lobby.currentRound}");
-        currentGame.currentRoundIndex = lobby.currentRound;
-      }
+      // if (currentGame.currentRoundIndex != lobby.currentRound) {
+      //   print("Syncing game round from ${currentGame.currentRoundIndex} to ${lobby.currentRound}");
+      //   currentGame.currentRoundIndex = lobby.currentRound;
+      // }
 
       return Stack(
         children: [
