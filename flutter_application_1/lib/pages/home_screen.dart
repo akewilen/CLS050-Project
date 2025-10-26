@@ -55,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     .set(lobby)
     .onError((e, _) => print("Error writing document: $e"));
 
+    print("Lobby created with id: $lobbyId");
     // screenStatus = HomescreenStatus.lobbyAdmin;
     Navigator.push(
       context,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/API.dart';
 import 'package:flutter_application_1/components/lobby.dart';
 import 'package:flutter_application_1/multiplayer/firestoreClasses.dart';
+import 'package:flutter_application_1/pages/mulitplayer_scorescreen.dart';
 import '../GameLogic.dart';
 import '../components/timer_indicator.dart';
 import 'compare.dart';
@@ -58,8 +59,17 @@ class _GameViewState extends State<GameView> {
     super.dispose();
   }
 
+  static Game? _sharedGame;
+
   Future<void> _initializeGame() async {
-    currentGame = await GameLogic.createGame();
+    // Always create a new game instance for multiplayer games
+    if (widget.role != PlayerRole.singleplayer || _sharedGame == null || !_sharedGame!.isInitialized()) {
+      _sharedGame = await GameLogic.createGame();
+      currentGame = _sharedGame!;
+      print("Game started - Total rounds: ${currentGame.rounds.length}");
+    } else {
+      currentGame = _sharedGame!;
+    }
 
     if (widget.role != PlayerRole.singleplayer) {
       _lobbyStream = FirebaseFirestore.instance
@@ -73,7 +83,7 @@ class _GameViewState extends State<GameView> {
       if (!mounted) return;
 
       lobby = GameLobby.fromFirestore(doc);
-      print("initial lobby: ${lobby.toJson()}");
+      //print("initial lobby: ${lobby.toJson()}");
 
       subscribeToLobbyUpdates();
       reactToLobby();
@@ -83,9 +93,10 @@ class _GameViewState extends State<GameView> {
     setState(() {});
   }
 
-  void reactToLobby() {
+  Future<void> reactToLobby() async {
     // Only the host needs to control the lobby
     if (widget.role != PlayerRole.multiplayerHost) return;
+
 
     if (widget.lobbyId.isEmpty) {
         print("Error: Lobby ID is null or empty. Cannot write document.");
@@ -94,7 +105,12 @@ class _GameViewState extends State<GameView> {
 
     // Upload the current round info to the server
     if (lobby.status == GameStatus.waitingRoundInfo.value) {
-      print("Host will upload round to server.");
+      // Ensure we're using the correct round data
+      if (widget.role == PlayerRole.multiplayerGuest && currentGame.currentRoundIndex != lobby.currentRound) {
+        currentGame.currentRoundIndex = lobby.currentRound;
+      }
+      
+      print("Round ${currentGame.currentRoundIndex} started");
       Country? top = getTopCountry();
       Country? bottom = getBottomCountry();
       String currentStat = currentGame.getCurrentStat();
@@ -116,30 +132,69 @@ class _GameViewState extends State<GameView> {
         'roundInfo': newRoundInfo,
         'currentRound': currentGame.currentRoundIndex,
         'status': GameStatus.playingMap.value,
+        'players.host.readyForNextRound': false,
+        'players.guest.readyForNextRound': false,
       };
 
       final docRef = db.collection("lobbies").doc(widget.lobbyId);
 
       docRef.update(updateData)
-        .then((_) {
-          print("Successfully pushed new round to Firestore!");
-        })
         .catchError((e) {
-          print("Error pushing new round to Firestore: $e");
+          print("Error: Failed to update game state");
         });
       return;
     }
 
-    if (lobby.status == GameStatus.finishedRound.value) {
-      // TODO: add score the the player that won the round.
-      final bool nextRound = currentGame.hasNextRound();
-      if (nextRound) {
-        currentGame.nextRound();
-      }
-      final Map<String, dynamic> updateData = {
-        'status': nextRound ? GameStatus.waitingRoundInfo.value : GameStatus.finished.value,
-      };
+    // Fetch next round if both players are ready and we're in the correct state
+    if (lobby.status == GameStatus.playingMap.value &&  // Only advance during play state
+        lobby.players['host']?.readyForNextRound == true &&
+        lobby.players['guest']?.readyForNextRound == true &&
+        lobby.currentRound == currentGame.currentRoundIndex) {  // Ensure we're on the same round
+      print("Round ${currentGame.currentRoundIndex} - Both players have finished");
+      
+      final bool hasNextRound = currentGame.hasNextRound();
+      
+      if (hasNextRound) {
+        await currentGame.nextRound(); // Wait for the next round to be fully loaded
+        final newRoundIndex = currentGame.currentRoundIndex;
+        print("Advancing to round $newRoundIndex");
+        
+        // Check if this is the last round
+        if (newRoundIndex >= lobby.totalRounds) {
+          print("Final round completed - Game finished");
+          // Game is finished, update lobby state
+          final Map<String, dynamic> updateData = {
+            'currentRound': newRoundIndex,
+            'status': GameStatus.finished.value,
+            'players.host.readyForNextRound': false,
+            'players.guest.readyForNextRound': false
+          };
+          final docRef = db.collection("lobbies").doc(widget.lobbyId);
+          await docRef.update(updateData);
+          return;
+        }
+        
+        // Not the last round, continue normally
+        final Map<String, dynamic> updateData = {
+          'currentRound': newRoundIndex,
+          'status': GameStatus.waitingRoundInfo.value,
+          'players.host.readyForNextRound': false,
+          'players.guest.readyForNextRound': false
+        };
+        
+        print("Updating lobby with round $newRoundIndex");
+        final docRef = db.collection("lobbies").doc(widget.lobbyId);
+        await docRef.update(updateData);
+        return; // Exit after updating the round
+      } else {
+        // Game is finished
+        final Map<String, dynamic> updateData = {
+          'status': GameStatus.finished.value,
+          'players.host.readyForNextRound': false,
+          'players.guest.readyForNextRound': false
+        };
 
+      print("Updating lobby with new round data. Round index: ${currentGame.currentRoundIndex}");
       final docRef = db.collection("lobbies").doc(widget.lobbyId);
 
       docRef.update(updateData)
@@ -152,6 +207,8 @@ class _GameViewState extends State<GameView> {
       return;
     }
   }
+}
+
 
   void subscribeToLobbyUpdates() {
     _lobbySubscription = _lobbyStream.listen(
@@ -162,23 +219,50 @@ class _GameViewState extends State<GameView> {
         }
 
         lobby = GameLobby.fromFirestore(docSnapshot);
-        print("New lobby: ${lobby.toJson()}");
 
         // Update the UI with the new lobby
         setState(() {});
 
-        if ((lobby.status == GameStatus.finished.value) || (lobby.status == GameStatus.canceled.value)) {
+        if (lobby.status == GameStatus.finished.value) {
           _lobbySubscription?.cancel();
+          // Reset game instances for next game
+          _sharedGame = null;
+          currentGame = Game();
+          
+          // Navigate to the multiplayer score screen
+          if (!mounted) return;
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MultiplayerScoreScreen(
+                hostId: widget.role == PlayerRole.multiplayerHost ? 'You' : 'Host',
+                guestId: widget.role == PlayerRole.multiplayerGuest ? 'You' : 'Guest',
+                hostScore: lobby.players['host']?.score ?? 0,
+                guestScore: lobby.players['guest']?.score ?? 0,
+              ),
+            ),
+            ModalRoute.withName('/'),
+          );
+          return;
+        } else if (lobby.status == GameStatus.canceled.value) {
+          _lobbySubscription?.cancel();
+          if (!mounted) return;
+          Navigator.of(context).popUntil((route) => route.isFirst);
           return;
         }
 
-        // When a round finishes and status is 'waiting', the host will react.
-        if (lobby.status == GameStatus.waitingRoundInfo.value) {
-          reactToLobby();
+      // When status is waiting, host will handle next round setup
+        if (lobby.status == GameStatus.waitingRoundInfo.value && widget.role == PlayerRole.multiplayerHost) {
+          print("Handling waiting state, current round: ${currentGame.currentRoundIndex}");
+          Future.microtask(() => reactToLobby());
         }
 
-        if (lobby.status == GameStatus.finishedRound.value) {
-          reactToLobby();
+        // Only host should handle round advancement through reactToLobby
+        if (widget.role == PlayerRole.multiplayerHost) {
+          // Add a small delay to ensure all state updates are processed
+          Future.delayed(Duration(milliseconds: 100), () {
+            if (mounted) reactToLobby();
+          });
         }
       },
       onError: (error) {
@@ -188,19 +272,27 @@ class _GameViewState extends State<GameView> {
   }
 
   Country? getTopCountry() {
-    CountryData? stats = currentGame.getCurrentCountry();
-    if (stats == null) {
+    try {
+      CountryData? stats = currentGame.getCurrentCountry();
+      if (stats == null) {
+        return null;
+      }
+      return Country.fromCountryData(currentGame.rounds[currentGame.currentRoundIndex], stats);
+    } catch (e) {
       return null;
     }
-    return Country.fromCountryData(currentGame.rounds[currentGame.currentRoundIndex], stats);
   }
 
   Country? getBottomCountry() {
-    CountryData? stats = currentGame.getNextCountry();
-    if (stats == null) {
+    try {
+      CountryData? stats = currentGame.getNextCountry();
+      if (stats == null) {
+        return null;
+      }
+      return Country.fromCountryData(currentGame.rounds[currentGame.currentRoundIndex + 1], stats);
+    } catch (e) {
       return null;
     }
-    return Country.fromCountryData(currentGame.rounds[currentGame.currentRoundIndex + 1], stats);
   }
 
   Future<void> _openCompareModal({
@@ -284,45 +376,66 @@ class _GameViewState extends State<GameView> {
       roundWinnerId: (widget.role == PlayerRole.multiplayerHost) ? "host" : "guest",
     ).toJson();
 
+    // Update the player's ready status based on their role
+    final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host.readyForNextRound' : 'players.guest.readyForNextRound';
+    
     final Map<String, dynamic> updateData = {
       'roundInfo': newRoundInfo,
-      'status': GameStatus.finishedRound.value,
+      playerPath: true,  // Set the player as ready for the next round
     };
 
     final docRef = db.collection("lobbies").doc(widget.lobbyId);
     docRef.update(updateData)
       .then((_) {
-        print("Winner of this round has updated the lobby!");
+        print("Player ${widget.role == PlayerRole.multiplayerHost ? 'Host' : 'Guest'} finished round ${currentGame.currentRoundIndex}");
       })
       .catchError((e) {
-        print("Error writing document to Firestore: $e");
+        print("Error: Failed to update player status");
       });
   }
 
   void _onWrong() async {
-    int finalScore = currentGame.totalScore;
-    // Add the current round's score before ending if it's time restricted mode
-    if (widget.timeRestriction && _currentScore > 0) {
-      finalScore = currentGame.totalScore;
-    }
-    await HighScore.setIfHigher(finalScore);
-    final highScore = await HighScore.get();
+    if (widget.role == PlayerRole.singleplayer) {
+      int finalScore = currentGame.totalScore;
+      // Add the current round's score before ending if it's time restricted mode
+      if (widget.timeRestriction && _currentScore > 0) {
+        finalScore = currentGame.totalScore;
+      }
+      await HighScore.setIfHigher(finalScore);
+      final highScore = await HighScore.get();
 
-    currentGame = await GameLogic.createGame();
-    if (!mounted) return;
+      // Reset both shared and current game instances for new singleplayer session
+      _sharedGame = await GameLogic.createGame();
+      currentGame = _sharedGame!;
+      if (!mounted) return;
 
-    Navigator.pushAndRemoveUntil(
-      //change to: pushAndRemoveUntil... replace both compare och map in the navigation stack
-      context,
-      MaterialPageRoute(
-        builder: (context) => ScoreScreen(
-          timeRestriction: widget.timeRestriction,
-          highScore: highScore,
-          finalScore: finalScore,
+      Navigator.pushAndRemoveUntil(
+        //change to: pushAndRemoveUntil... replace both compare och map in the navigation stack
+        context,
+        MaterialPageRoute(
+          builder: (context) => ScoreScreen(
+            timeRestriction: widget.timeRestriction,
+            highScore: highScore,
+            finalScore: finalScore,
+          ),
         ),
-      ),
-      ModalRoute.withName('/'),
-    );
+        ModalRoute.withName('/'),
+      );
+      return;
+    }
+
+    // For multiplayer, update the ready status
+    final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host.readyForNextRound' : 'players.guest.readyForNextRound';
+    
+    final Map<String, dynamic> updateData = {
+      playerPath: true,  // Set the player as ready for the next round
+    };
+
+    final docRef = db.collection("lobbies").doc(widget.lobbyId);
+    docRef.update(updateData)
+      .catchError((e) {
+        print("Error: Failed to update player status");
+      });
   }
 
   void _handleTimeUp() {
@@ -404,7 +517,10 @@ class _GameViewState extends State<GameView> {
 
   Widget _multiPlayerScreen(BuildContext context) {
     if (lobby.status == GameStatus.waitingRoundInfo.value) {
-      print("Waiting for the next round!");
+      print("Waiting screen - Current game round: ${currentGame.currentRoundIndex}");
+      if (widget.role == PlayerRole.multiplayerHost) {
+        print("Host's next countries: ${currentGame.rounds[currentGame.currentRoundIndex]} -> ${currentGame.rounds[currentGame.currentRoundIndex + 1]}");
+      }
       // Return the Center widget directly
       return const Center(
         child: Row(
@@ -427,6 +543,12 @@ class _GameViewState extends State<GameView> {
     }
 
     if (lobby.status == GameStatus.playingMap.value) {
+      // Only guest should sync their round with the lobby
+      if (widget.role == PlayerRole.multiplayerGuest && currentGame.currentRoundIndex != lobby.currentRound) {
+        print("Guest syncing game round from ${currentGame.currentRoundIndex} to ${lobby.currentRound}");
+        currentGame.currentRoundIndex = lobby.currentRound;
+      }
+
       return Stack(
         children: [
           MapGame(
