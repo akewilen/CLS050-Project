@@ -62,13 +62,14 @@ class _GameViewState extends State<GameView> {
   static Game? _sharedGame;
 
   Future<void> _initializeGame() async {
-    // Always create a new game instance for multiplayer games
-    if (widget.role != PlayerRole.singleplayer || _sharedGame == null || !_sharedGame!.isInitialized()) {
+    // For multiplayer, only create a new game if there isn't one
+    if (_sharedGame == null || !_sharedGame!.isInitialized()) {
       _sharedGame = await GameLogic.createGame();
       currentGame = _sharedGame!;
-      print("Game started - Total rounds: ${currentGame.rounds.length}");
+      print("Game started - New game instance created");
     } else {
       currentGame = _sharedGame!;
+      print("Game continued - Using existing game instance at round ${currentGame.currentRoundIndex}");
     }
 
     if (widget.role != PlayerRole.singleplayer) {
@@ -103,24 +104,23 @@ class _GameViewState extends State<GameView> {
         return;
       }
 
-    // Upload the current round info to the server
-    if (lobby.status == GameStatus.waitingRoundInfo.value) {
-      // Ensure we're using the correct round data
-      if (widget.role == PlayerRole.multiplayerGuest && currentGame.currentRoundIndex != lobby.currentRound) {
-        currentGame.currentRoundIndex = lobby.currentRound;
-      }
-      
-      print("Round ${currentGame.currentRoundIndex} started");
-      Country? top = getTopCountry();
-      Country? bottom = getBottomCountry();
-      String currentStat = currentGame.getCurrentStat();
+      // Upload the current round info to the server
+      if (lobby.status == GameStatus.waitingRoundInfo.value) {
+        // Always sync round index with lobby to ensure consistency
+        if (currentGame.currentRoundIndex != lobby.currentRound) {
+          currentGame.currentRoundIndex = lobby.currentRound;
+          print("Syncing round index to match lobby: ${lobby.currentRound}");
+        }
+        
+        print("Round ${currentGame.currentRoundIndex} started");
+        Country? top = getTopCountry();
+        Country? bottom = getBottomCountry();
+        String currentStat = currentGame.getCurrentStat();
 
-      if ((top == null) || (bottom == null)) {
-        print("Error when reacting to round change. Top or bottom country was not loaded hence cannot update the server.");
-        return;
-      }
-
-      final Map<String, dynamic> newRoundInfo = RoundInfo(
+        if ((top == null) || (bottom == null)) {
+          print("Error when reacting to round change. Top or bottom country was not loaded hence cannot update the server.");
+          return;
+        }      final Map<String, dynamic> newRoundInfo = RoundInfo(
         topCountry: top,
         bottomCountry: bottom,
         statistic: currentStat,
@@ -160,7 +160,7 @@ class _GameViewState extends State<GameView> {
         print("Advancing to round $newRoundIndex");
         
         // Check if this is the last round
-        if (newRoundIndex >= lobby.totalRounds) {
+        if (newRoundIndex >= lobby.totalRounds - 1) {
           print("Final round completed - Game finished");
           // Game is finished, update lobby state
           final Map<String, dynamic> updateData = {
@@ -367,6 +367,12 @@ class _GameViewState extends State<GameView> {
       });
       return;
     }
+    
+    // For multiplayer, stop timer and show waiting message
+    setState(() {
+      _isCompareTimerActive = false;
+    });
+    
     final RoundInfo oldRound = lobby.roundInfo;
     final Map<String, dynamic> newRoundInfo = RoundInfo(
       topCountry: oldRound.topCountry,
@@ -376,18 +382,46 @@ class _GameViewState extends State<GameView> {
       roundWinnerId: (widget.role == PlayerRole.multiplayerHost) ? "host" : "guest",
     ).toJson();
 
-    // Update the player's ready status based on their role
-    final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host.readyForNextRound' : 'players.guest.readyForNextRound';
+    // Update the player's ready status and score based on their role
+    final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host' : 'players.guest';
+    
+    // Get current player's score from lobby
+    final int currentPlayerScore = widget.role == PlayerRole.multiplayerHost 
+        ? (lobby.players['host']?.score ?? 0) 
+        : (lobby.players['guest']?.score ?? 0);
     
     final Map<String, dynamic> updateData = {
       'roundInfo': newRoundInfo,
-      playerPath: true,  // Set the player as ready for the next round
+      '$playerPath.readyForNextRound': true,  // Set the player as ready for the next round
+      '$playerPath.score': currentPlayerScore + _currentScore,  // Add current round's score
     };
 
     final docRef = db.collection("lobbies").doc(widget.lobbyId);
     docRef.update(updateData)
       .then((_) {
         print("Player ${widget.role == PlayerRole.multiplayerHost ? 'Host' : 'Guest'} finished round ${currentGame.currentRoundIndex}");
+        // Check if other player is already ready
+        if ((widget.role == PlayerRole.multiplayerHost && lobby.players['guest']?.readyForNextRound == true) ||
+            (widget.role == PlayerRole.multiplayerGuest && lobby.players['host']?.readyForNextRound == true)) {
+          Navigator.pop(context); // Only pop when both players are ready
+        } else {
+          // Show waiting dialog if other player isn't ready
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                content: Row(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 20),
+                    Text('Waiting for opponent...'),
+                  ],
+                ),
+              );
+            },
+          );
+        }
       })
       .catchError((e) {
         print("Error: Failed to update player status");
@@ -424,7 +458,18 @@ class _GameViewState extends State<GameView> {
       return;
     }
 
-    // For multiplayer, update the ready status
+    // For multiplayer, only update ready status after player has actually made a guess
+    if (_isMapTimerActive) {
+      // If timer is still active, player needs to make their guess first
+      Navigator.pop(context); // Close compare modal
+      return;
+    }
+    
+    // Stop timer for multiplayer compare view
+    setState(() {
+      _isCompareTimerActive = false;
+    });
+    
     final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host.readyForNextRound' : 'players.guest.readyForNextRound';
     
     final Map<String, dynamic> updateData = {
@@ -433,6 +478,30 @@ class _GameViewState extends State<GameView> {
 
     final docRef = db.collection("lobbies").doc(widget.lobbyId);
     docRef.update(updateData)
+      .then((_) {
+        // Check if other player is already ready
+        if ((widget.role == PlayerRole.multiplayerHost && lobby.players['guest']?.readyForNextRound == true) ||
+            (widget.role == PlayerRole.multiplayerGuest && lobby.players['host']?.readyForNextRound == true)) {
+          Navigator.pop(context); // Only pop when both players are ready
+        } else {
+          // Show waiting dialog if other player isn't ready
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                content: Row(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 20),
+                    Text('Waiting for opponent...'),
+                  ],
+                ),
+              );
+            },
+          );
+        }
+      })
       .catchError((e) {
         print("Error: Failed to update player status");
       });
@@ -440,11 +509,37 @@ class _GameViewState extends State<GameView> {
 
   void _handleTimeUp() {
     if (mounted) {
-      setState(() {
-        _isMapTimerActive = false;
-        _isCompareTimerActive = false;
-      });
-      _onWrong();
+      if (widget.role == PlayerRole.singleplayer) {
+        setState(() {
+          _isMapTimerActive = false;
+          _isCompareTimerActive = false;
+        });
+        _onWrong();
+        return;
+      }
+
+      // For multiplayer
+      if (_isMapTimerActive) {
+        // In map view - force move to compare view with zero score
+        setState(() {
+          _isMapTimerActive = false;
+          _currentScore = 0;
+        });
+        // Get current round info for compare view
+        final compareField = _getCompareField(lobby.roundInfo.statistic!);
+        _openCompareModal(
+          compareField: compareField,
+          topCountry: lobby.roundInfo.topCountry!,
+          bottomCountry: lobby.roundInfo.bottomCountry!,
+        );
+      } else if (_isCompareTimerActive) {
+        // In compare view - treat as wrong answer
+        setState(() {
+          _isCompareTimerActive = false;
+          _currentScore = 0;
+        });
+        _onWrong();
+      }
     }
   }
 
@@ -543,9 +638,9 @@ class _GameViewState extends State<GameView> {
     }
 
     if (lobby.status == GameStatus.playingMap.value) {
-      // Only guest should sync their round with the lobby
-      if (widget.role == PlayerRole.multiplayerGuest && currentGame.currentRoundIndex != lobby.currentRound) {
-        print("Guest syncing game round from ${currentGame.currentRoundIndex} to ${lobby.currentRound}");
+      // Both players should stay in sync with lobby round
+      if (currentGame.currentRoundIndex != lobby.currentRound) {
+        print("Syncing game round from ${currentGame.currentRoundIndex} to ${lobby.currentRound}");
         currentGame.currentRoundIndex = lobby.currentRound;
       }
 

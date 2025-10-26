@@ -32,14 +32,14 @@ class _LobbyScreenState extends State<LobbyScreen> {
   void _startMultiplayerAsHost(String id) => Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => GameView(timeRestriction: false, role: PlayerRole.multiplayerHost, lobbyId: id),
+      builder: (context) => GameView(timeRestriction: true, role: PlayerRole.multiplayerHost, lobbyId: id),
     ),
   );
 
   void _startMultiplayerAsGuest(String id) => Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => GameView(timeRestriction: false, role: PlayerRole.multiplayerGuest, lobbyId: id,),
+      builder: (context) => GameView(timeRestriction: true, role: PlayerRole.multiplayerGuest, lobbyId: id,),
     ),
   );
 
