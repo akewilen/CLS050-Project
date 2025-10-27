@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
+import '../components/map_instruction.dart';
 
 class MapGame extends StatefulWidget {
   final String selectedCountry;
@@ -129,8 +130,8 @@ class _MapGameState extends State<MapGame> {
           ),
           Positioned(
             bottom: 16,
-            left: 16,
-            child: Text('Find: ${widget.hiddenCountry}'),
+            left: 0,
+            child: MapInstruction(hiddenCountry: widget.hiddenCountry),
           ),
         ],
       ),
