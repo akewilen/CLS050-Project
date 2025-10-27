@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_1/GameLogic.dart';
 import 'package:flutter_application_1/components/lobby.dart';
+import 'package:flutter_application_1/components/quitbutton.dart';
 import 'package:flutter_application_1/multiplayer/firestoreClasses.dart';
 import 'package:flutter_application_1/pages/game_view.dart';
 import 'package:flutter_application_1/pages/home_screen.dart';
@@ -81,21 +82,65 @@ class _LobbyScreenState extends State<LobbyScreen> {
         }
 
         return Scaffold(
-          body: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          body: Stack(
             children: [
-              Text("You are in a lobby with id: ${lobby.id}"),
-              Text((lobby.players.length == 1) ? "You are alone in the lobby" : "You are with 2 players. The game can be started,"),
-              ElevatedButton.icon(
-                label: Text("Start game"),
-                onPressed: () {
-                  final docRef = FirebaseFirestore.instance.collection("lobbies").doc(lobby.id);
-                  docRef.update({
-                    "status": GameStatus.waitingRoundInfo.value,
-                  });
+              Center(
+                child: widget.isHost 
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("You are in a lobby with id: ${lobby.id}"),
+                        Text(lobby.guestId == null ? "Waiting for a second player..." : "The game can be started."),
+                        if (lobby.guestId != null)
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text("Start game"),
+                            onPressed: () {
+                              final docRef = FirebaseFirestore.instance.collection("lobbies").doc(lobby.id);
+                              docRef.update({
+                                "status": GameStatus.waitingRoundInfo.value,
+                              });
+                            },
+                          )
+                      ],
+                    )
+                  : const Text("Waiting for the host to start..."),
+              ),
+              QuitButton(
+                onQuitConfirmed: () async {
+                  final lobbyRef = FirebaseFirestore.instance
+                      .collection("lobbies")
+                      .doc(widget.lobbyId);
+                      
+                  if (widget.isHost) {
+                    // Delete the entire lobby if host leaves
+                    await lobbyRef.delete();
+                  } else {
+                    // Get current lobby data to preserve host information
+                    final docSnapshot = await lobbyRef.get();
+                    final data = docSnapshot.data();
+                    if (data != null) {
+                      // Reset to just the host player
+                      await lobbyRef.update({
+                        'guestId': null,
+                        'players': {
+                          'host': {
+                            'name': 'John',
+                            'score': 0
+                          }
+                        }
+                      });
+                    }
+                  }
+
+                  if (mounted) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    );
+                  }
                 },
-              )
-            ]
+              ),
+            ],
           ),
         );
       },

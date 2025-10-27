@@ -67,10 +67,33 @@ class _HomeScreenState extends State<HomeScreen> {
     void joinLobbyAttempt(String lobbyId) {
       final docRef = db.collection("lobbies").doc(lobbyId);
       docRef.get().then((DocumentSnapshot doc) {
-        final data = doc.data();
+        if (!doc.exists) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Lobby not found')),
+          );
+          return;
+        }
+
+        final data = doc.data() as Map<String, dynamic>;
+        
+        // Check if the lobby is in the right status to join
+        if (data['status'] != 'lobby') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This lobby is not available to join')),
+          );
+          return;
+        }
+
+        // Check if the lobby already has a guest
+        if (data['guestId'] != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This lobby is already full')),
+          );
+          return;
+        }
 
         final Map<String, dynamic> guestPlayerData = {
-          "name": "guestName",
+          "name": "Guest",
           "score": 0,
           "readyForNextRound": false,
           "lastAnswerTime": null,
@@ -184,6 +207,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        leading: screenStatus != HomescreenStatus.home 
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => setState(() => screenStatus = HomescreenStatus.home),
+            )
+          : null,
         title: Text(
           (screenStatus == HomescreenStatus.home) ? 'Home' : 'Multiplayer',
         ),
