@@ -15,11 +15,7 @@ import 'score_screen.dart';
 import 'high_score.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum PlayerRole {
-  singleplayer,
-  multiplayerHost,
-  multiplayerGuest,
-}
+enum PlayerRole { singleplayer, multiplayerHost, multiplayerGuest }
 
 class GameView extends StatefulWidget {
   const GameView({
@@ -71,7 +67,9 @@ class _GameViewState extends State<GameView> {
       print("Game started - New game instance created");
     } else {
       currentGame = _sharedGame!;
-      print("Game continued - Using existing game instance at round ${currentGame.currentRoundIndex}");
+      print(
+        "Game continued - Using existing game instance at round ${currentGame.currentRoundIndex}",
+      );
     }
 
     if (widget.role != PlayerRole.singleplayer) {
@@ -100,29 +98,31 @@ class _GameViewState extends State<GameView> {
     // Only the host needs to control the lobby
     if (widget.role != PlayerRole.multiplayerHost) return;
 
-
     if (widget.lobbyId.isEmpty) {
-        print("Error: Lobby ID is null or empty. Cannot write document.");
-        return;
+      print("Error: Lobby ID is null or empty. Cannot write document.");
+      return;
+    }
+
+    // Upload the current round info to the server
+    if (lobby.status == GameStatus.waitingRoundInfo.value) {
+      // Always sync round index with lobby to ensure consistency
+      if (currentGame.currentRoundIndex != lobby.currentRound) {
+        currentGame.currentRoundIndex = lobby.currentRound;
+        print("Syncing round index to match lobby: ${lobby.currentRound}");
       }
 
-      // Upload the current round info to the server
-      if (lobby.status == GameStatus.waitingRoundInfo.value) {
-        // Always sync round index with lobby to ensure consistency
-        if (currentGame.currentRoundIndex != lobby.currentRound) {
-          currentGame.currentRoundIndex = lobby.currentRound;
-          print("Syncing round index to match lobby: ${lobby.currentRound}");
-        }
-        
-        print("Round ${currentGame.currentRoundIndex} started");
-        Country? top = getTopCountry();
-        Country? bottom = getBottomCountry();
-        String currentStat = currentGame.getCurrentStat();
+      print("Round ${currentGame.currentRoundIndex} started");
+      Country? top = getTopCountry();
+      Country? bottom = getBottomCountry();
+      String currentStat = currentGame.getCurrentStat();
 
-        if ((top == null) || (bottom == null)) {
-          print("Error when reacting to round change. Top or bottom country was not loaded hence cannot update the server.");
-          return;
-        }      final Map<String, dynamic> newRoundInfo = RoundInfo(
+      if ((top == null) || (bottom == null)) {
+        print(
+          "Error when reacting to round change. Top or bottom country was not loaded hence cannot update the server.",
+        );
+        return;
+      }
+      final Map<String, dynamic> newRoundInfo = RoundInfo(
         topCountry: top,
         bottomCountry: bottom,
         statistic: currentStat,
@@ -140,27 +140,31 @@ class _GameViewState extends State<GameView> {
 
       final docRef = db.collection("lobbies").doc(widget.lobbyId);
 
-      docRef.update(updateData)
-        .catchError((e) {
-          print("Error: Failed to update game state");
-        });
+      docRef.update(updateData).catchError((e) {
+        print("Error: Failed to update game state");
+      });
       return;
     }
 
     // Fetch next round if both players are ready and we're in the correct state
-    if (lobby.status == GameStatus.playingMap.value &&  // Only advance during play state
+    if (lobby.status ==
+            GameStatus.playingMap.value && // Only advance during play state
         lobby.players['host']?.readyForNextRound == true &&
         lobby.players['guest']?.readyForNextRound == true &&
-        lobby.currentRound == currentGame.currentRoundIndex) {  // Ensure we're on the same round
-      print("Round ${currentGame.currentRoundIndex} - Both players have finished");
-      
+        lobby.currentRound == currentGame.currentRoundIndex) {
+      // Ensure we're on the same round
+      print(
+        "Round ${currentGame.currentRoundIndex} - Both players have finished",
+      );
+
       final bool hasNextRound = currentGame.hasNextRound();
-      
+
       if (hasNextRound) {
-        await currentGame.nextRound(); // Wait for the next round to be fully loaded
+        await currentGame
+            .nextRound(); // Wait for the next round to be fully loaded
         final newRoundIndex = currentGame.currentRoundIndex;
         print("Advancing to round $newRoundIndex");
-        
+
         // Check if this is the last round
         if (newRoundIndex >= lobby.totalRounds - 1) {
           print("Final round completed - Game finished");
@@ -169,21 +173,21 @@ class _GameViewState extends State<GameView> {
             'currentRound': newRoundIndex,
             'status': GameStatus.finished.value,
             'players.host.readyForNextRound': false,
-            'players.guest.readyForNextRound': false
+            'players.guest.readyForNextRound': false,
           };
           final docRef = db.collection("lobbies").doc(widget.lobbyId);
           await docRef.update(updateData);
           return;
         }
-        
+
         // Not the last round, continue normally
         final Map<String, dynamic> updateData = {
           'currentRound': newRoundIndex,
           'status': GameStatus.waitingRoundInfo.value,
           'players.host.readyForNextRound': false,
-          'players.guest.readyForNextRound': false
+          'players.guest.readyForNextRound': false,
         };
-        
+
         print("Updating lobby with round $newRoundIndex");
         final docRef = db.collection("lobbies").doc(widget.lobbyId);
         await docRef.update(updateData);
@@ -193,24 +197,26 @@ class _GameViewState extends State<GameView> {
         final Map<String, dynamic> updateData = {
           'status': GameStatus.finished.value,
           'players.host.readyForNextRound': false,
-          'players.guest.readyForNextRound': false
+          'players.guest.readyForNextRound': false,
         };
 
-      print("Updating lobby with new round data. Round index: ${currentGame.currentRoundIndex}");
-      final docRef = db.collection("lobbies").doc(widget.lobbyId);
+        print(
+          "Updating lobby with new round data. Round index: ${currentGame.currentRoundIndex}",
+        );
+        final docRef = db.collection("lobbies").doc(widget.lobbyId);
 
-      docRef.update(updateData)
-        .then((_) {
-          print("Successfully pushed finishing state to Firestore!");
-        })
-        .catchError((e) {
-          print("Error writing finishing state to Firestore: $e");
-        });
-      return;
+        docRef
+            .update(updateData)
+            .then((_) {
+              print("Successfully pushed finishing state to Firestore!");
+            })
+            .catchError((e) {
+              print("Error writing finishing state to Firestore: $e");
+            });
+        return;
+      }
     }
   }
-}
-
 
   void subscribeToLobbyUpdates() {
     _lobbySubscription = _lobbyStream.listen(
@@ -234,15 +240,19 @@ class _GameViewState extends State<GameView> {
           // Reset game instances for next game
           _sharedGame = null;
           currentGame = Game();
-          
+
           // Navigate to the multiplayer score screen
           if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => MultiplayerScoreScreen(
-                hostId: widget.role == PlayerRole.multiplayerHost ? 'You' : 'Host',
-                guestId: widget.role == PlayerRole.multiplayerGuest ? 'You' : 'Guest',
+                hostId: widget.role == PlayerRole.multiplayerHost
+                    ? 'You'
+                    : 'Host',
+                guestId: widget.role == PlayerRole.multiplayerGuest
+                    ? 'You'
+                    : 'Guest',
                 hostScore: lobby.players['host']?.score ?? 0,
                 guestScore: lobby.players['guest']?.score ?? 0,
               ),
@@ -260,7 +270,7 @@ class _GameViewState extends State<GameView> {
           // Reset scores and timers
 
           if (!mounted) return;
-          
+
           // Show popup about opponent leaving
           showDialog(
             context: context,
@@ -289,9 +299,12 @@ class _GameViewState extends State<GameView> {
           return;
         }
 
-      // When status is waiting, host will handle next round setup
-        if (lobby.status == GameStatus.waitingRoundInfo.value && widget.role == PlayerRole.multiplayerHost) {
-          print("Handling waiting state, current round: ${currentGame.currentRoundIndex}");
+        // When status is waiting, host will handle next round setup
+        if (lobby.status == GameStatus.waitingRoundInfo.value &&
+            widget.role == PlayerRole.multiplayerHost) {
+          print(
+            "Handling waiting state, current round: ${currentGame.currentRoundIndex}",
+          );
           Future.microtask(() => reactToLobby());
         }
 
@@ -315,7 +328,10 @@ class _GameViewState extends State<GameView> {
       if (stats == null) {
         return null;
       }
-      return Country.fromCountryData(currentGame.rounds[currentGame.currentRoundIndex], stats);
+      return Country.fromCountryData(
+        currentGame.rounds[currentGame.currentRoundIndex],
+        stats,
+      );
     } catch (e) {
       return null;
     }
@@ -327,7 +343,10 @@ class _GameViewState extends State<GameView> {
       if (stats == null) {
         return null;
       }
-      return Country.fromCountryData(currentGame.rounds[currentGame.currentRoundIndex + 1], stats);
+      return Country.fromCountryData(
+        currentGame.rounds[currentGame.currentRoundIndex + 1],
+        stats,
+      );
     } catch (e) {
       return null;
     }
@@ -342,11 +361,12 @@ class _GameViewState extends State<GameView> {
     await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
+      barrierColor: Colors.transparent,
       barrierLabel: 'Compare',
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (_, __, ___) {
         return Material(
-          color: Colors.black,
+          color: Colors.transparent,
           child: Stack(
             children: [
               ComparePage(
@@ -378,14 +398,10 @@ class _GameViewState extends State<GameView> {
                     _lobbySubscription?.cancel();
 
                     final docRef = db.collection("lobbies").doc(widget.lobbyId);
-                    docRef.update({
-                      'status': GameStatus.canceled.value,
-                    });
+                    docRef.update({'status': GameStatus.canceled.value});
                   }
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => const HomeScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
                     (route) => false,
                   );
                 },
@@ -424,65 +440,76 @@ class _GameViewState extends State<GameView> {
       });
       return;
     }
-    
+
     // For multiplayer, stop timer and show waiting message
     setState(() {
       _isCompareTimerActive = false;
     });
-    
+
     final RoundInfo oldRound = lobby.roundInfo;
     final Map<String, dynamic> newRoundInfo = RoundInfo(
       topCountry: oldRound.topCountry,
       bottomCountry: oldRound.bottomCountry,
       statistic: oldRound.statistic,
       roundEndTime: null,
-      roundWinnerId: (widget.role == PlayerRole.multiplayerHost) ? "host" : "guest",
+      roundWinnerId: (widget.role == PlayerRole.multiplayerHost)
+          ? "host"
+          : "guest",
     ).toJson();
 
     // Update the player's ready status and score based on their role
-    final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host' : 'players.guest';
-    
+    final String playerPath = widget.role == PlayerRole.multiplayerHost
+        ? 'players.host'
+        : 'players.guest';
+
     // Get current player's score from lobby
-    final int currentPlayerScore = widget.role == PlayerRole.multiplayerHost 
-        ? (lobby.players['host']?.score ?? 0) 
+    final int currentPlayerScore = widget.role == PlayerRole.multiplayerHost
+        ? (lobby.players['host']?.score ?? 0)
         : (lobby.players['guest']?.score ?? 0);
-    
+
     final Map<String, dynamic> updateData = {
       'roundInfo': newRoundInfo,
-      '$playerPath.readyForNextRound': true,  // Set the player as ready for the next round
-      '$playerPath.score': currentPlayerScore + _currentScore,  // Add current round's score
+      '$playerPath.readyForNextRound':
+          true, // Set the player as ready for the next round
+      '$playerPath.score':
+          currentPlayerScore + _currentScore, // Add current round's score
     };
 
     final docRef = db.collection("lobbies").doc(widget.lobbyId);
-    docRef.update(updateData)
-      .then((_) {
-        print("Player ${widget.role == PlayerRole.multiplayerHost ? 'Host' : 'Guest'} finished round ${currentGame.currentRoundIndex}");
-        // Check if other player is already ready
-        if ((widget.role == PlayerRole.multiplayerHost && lobby.players['guest']?.readyForNextRound == true) ||
-            (widget.role == PlayerRole.multiplayerGuest && lobby.players['host']?.readyForNextRound == true)) {
-          Navigator.pop(context); // Only pop when both players are ready
-        } else {
-          // Show waiting dialog if other player isn't ready
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                content: Row(
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(width: 20),
-                    Text('Waiting for opponent...'),
-                  ],
-                ),
-              );
-            },
+    docRef
+        .update(updateData)
+        .then((_) {
+          print(
+            "Player ${widget.role == PlayerRole.multiplayerHost ? 'Host' : 'Guest'} finished round ${currentGame.currentRoundIndex}",
           );
-        }
-      })
-      .catchError((e) {
-        print("Error: Failed to update player status");
-      });
+          // Check if other player is already ready
+          if ((widget.role == PlayerRole.multiplayerHost &&
+                  lobby.players['guest']?.readyForNextRound == true) ||
+              (widget.role == PlayerRole.multiplayerGuest &&
+                  lobby.players['host']?.readyForNextRound == true)) {
+            Navigator.pop(context); // Only pop when both players are ready
+          } else {
+            // Show waiting dialog if other player isn't ready
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  content: Row(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 20),
+                      Text('Waiting for opponent...'),
+                    ],
+                  ),
+                );
+              },
+            );
+          }
+        })
+        .catchError((e) {
+          print("Error: Failed to update player status");
+        });
   }
 
   void _onWrong() async {
@@ -521,47 +548,52 @@ class _GameViewState extends State<GameView> {
       Navigator.pop(context); // Close compare modal
       return;
     }
-    
+
     // Stop timer for multiplayer compare view
     setState(() {
       _isCompareTimerActive = false;
     });
-    
-    final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host.readyForNextRound' : 'players.guest.readyForNextRound';
-    
+
+    final String playerPath = widget.role == PlayerRole.multiplayerHost
+        ? 'players.host.readyForNextRound'
+        : 'players.guest.readyForNextRound';
+
     final Map<String, dynamic> updateData = {
-      playerPath: true,  // Set the player as ready for the next round
+      playerPath: true, // Set the player as ready for the next round
     };
 
     final docRef = db.collection("lobbies").doc(widget.lobbyId);
-    docRef.update(updateData)
-      .then((_) {
-        // Check if other player is already ready
-        if ((widget.role == PlayerRole.multiplayerHost && lobby.players['guest']?.readyForNextRound == true) ||
-            (widget.role == PlayerRole.multiplayerGuest && lobby.players['host']?.readyForNextRound == true)) {
-          Navigator.pop(context); // Only pop when both players are ready
-        } else {
-          // Show waiting dialog if other player isn't ready
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                content: Row(
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(width: 20),
-                    Text('Waiting for opponent...'),
-                  ],
-                ),
-              );
-            },
-          );
-        }
-      })
-      .catchError((e) {
-        print("Error: Failed to update player status");
-      });
+    docRef
+        .update(updateData)
+        .then((_) {
+          // Check if other player is already ready
+          if ((widget.role == PlayerRole.multiplayerHost &&
+                  lobby.players['guest']?.readyForNextRound == true) ||
+              (widget.role == PlayerRole.multiplayerGuest &&
+                  lobby.players['host']?.readyForNextRound == true)) {
+            Navigator.pop(context); // Only pop when both players are ready
+          } else {
+            // Show waiting dialog if other player isn't ready
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  content: Row(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(width: 20),
+                      Text('Waiting for opponent...'),
+                    ],
+                  ),
+                );
+              },
+            );
+          }
+        })
+        .catchError((e) {
+          print("Error: Failed to update player status");
+        });
   }
 
   void _handleTimeUp() {
@@ -666,9 +698,7 @@ class _GameViewState extends State<GameView> {
         QuitButton(
           onQuitConfirmed: () {
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => const HomeScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
               (route) => false,
             );
           },
@@ -679,9 +709,13 @@ class _GameViewState extends State<GameView> {
 
   Widget _multiPlayerScreen(BuildContext context) {
     if (lobby.status == GameStatus.waitingRoundInfo.value) {
-      print("Waiting screen - Current game round: ${currentGame.currentRoundIndex}");
+      print(
+        "Waiting screen - Current game round: ${currentGame.currentRoundIndex}",
+      );
       if (widget.role == PlayerRole.multiplayerHost) {
-        print("Host's next countries: ${currentGame.rounds[currentGame.currentRoundIndex]} -> ${currentGame.rounds[currentGame.currentRoundIndex + 1]}");
+        print(
+          "Host's next countries: ${currentGame.rounds[currentGame.currentRoundIndex]} -> ${currentGame.rounds[currentGame.currentRoundIndex + 1]}",
+        );
       }
       // Return the Center widget directly
       return const Center(
@@ -698,7 +732,9 @@ class _GameViewState extends State<GameView> {
 
     final RoundInfo round = lobby.roundInfo;
 
-    if ((round.topCountry == null) || (round.bottomCountry == null) || (round.statistic == null)) {
+    if ((round.topCountry == null) ||
+        (round.bottomCountry == null) ||
+        (round.statistic == null)) {
       return const Center(
         child: Text("Error: Round data is missing from the lobby."),
       );
@@ -721,18 +757,22 @@ class _GameViewState extends State<GameView> {
                 _isMapTimerActive = false;
               });
               print('mapview score: $_currentScore');
-              
+
               // Update map view score in database
-              final String playerPath = widget.role == PlayerRole.multiplayerHost ? 'players.host' : 'players.guest';
-              final int currentPlayerScore = widget.role == PlayerRole.multiplayerHost 
-                  ? (lobby.players['host']?.score ?? 0) 
+              final String playerPath =
+                  widget.role == PlayerRole.multiplayerHost
+                  ? 'players.host'
+                  : 'players.guest';
+              final int currentPlayerScore =
+                  widget.role == PlayerRole.multiplayerHost
+                  ? (lobby.players['host']?.score ?? 0)
                   : (lobby.players['guest']?.score ?? 0);
-              
+
               final docRef = db.collection("lobbies").doc(widget.lobbyId);
               await docRef.update({
                 '$playerPath.score': currentPlayerScore + _currentScore,
               });
-              
+
               await _openCompareModal(
                 compareField: _getCompareField(round.statistic!),
                 topCountry: round.topCountry!,
@@ -765,13 +805,9 @@ class _GameViewState extends State<GameView> {
               // Update lobby status to canceled before quitting
               _lobbySubscription?.cancel();
               final docRef = db.collection("lobbies").doc(widget.lobbyId);
-              docRef.update({
-                'status': GameStatus.canceled.value,
-              }).then((_) {
+              docRef.update({'status': GameStatus.canceled.value}).then((_) {
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) => const HomeScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
                   (route) => false,
                 );
               });
@@ -782,9 +818,7 @@ class _GameViewState extends State<GameView> {
     }
 
     // Fallback for others
-    return Center(
-      child: Text("Not implemented for status: ${lobby.status}"),
-    );
+    return Center(child: Text("Not implemented for status: ${lobby.status}"));
   }
 
   @override

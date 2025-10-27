@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../components/country.dart';
-import '../components/timer_indicator.dart';
 import '../themes/app_theme.dart';
 
 class ComparePage extends StatefulWidget {
@@ -50,7 +49,9 @@ class _ComparePageState extends State<ComparePage> {
   static String _getStatValueText(Country country, CountryField field) {
     switch (field) {
       case CountryField.population:
-        return NumberFormat('#,###').format((country.population * 1000).toInt());
+        return NumberFormat(
+          '#,###',
+        ).format((country.population * 1000).toInt());
       case CountryField.forestedArea:
         return '${country.forestedArea} %';
       case CountryField.surfaceArea:
@@ -80,31 +81,11 @@ class _ComparePageState extends State<ComparePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: DefaultTextStyle.merge(
         style: const TextStyle(color: Colors.black),
         child: Stack(
           children: [
-            // Round counter in top left
-            Positioned(
-              left: 0.3 * MediaQuery.of(context).size.width,
-              width: 0.4 * MediaQuery.of(context).size.width,
-              top: 20,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.window90,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Builder(
-                  builder: (context) {
-                    return Text(
-                      'Round ${widget.roundNumber}',
-                      style: AppTheme.countryNameTextStyle,
-                    );
-                  },
-                ),
-              ),
-            ),
             // Main content
             Column(
               children: [
@@ -142,7 +123,7 @@ class _ComparePageState extends State<ComparePage> {
                   ),
                 ),
 
-                const Expanded(flex: 2, child: SizedBox.shrink()),
+                const Expanded(flex: 1, child: SizedBox.shrink()),
 
                 Expanded(
                   flex: 48,
@@ -209,6 +190,27 @@ class _ComparePageState extends State<ComparePage> {
                   ),
                 ),
               ],
+            ),
+            // Round counter in top left
+            Positioned(
+              left: 0.3 * MediaQuery.of(context).size.width,
+              width: 0.4 * MediaQuery.of(context).size.width,
+              top: 20,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.window90,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Builder(
+                  builder: (context) {
+                    return Text(
+                      'Round ${widget.roundNumber}',
+                      style: AppTheme.countryNameTextStyle,
+                    );
+                  },
+                ),
+              ),
             ),
           ],
         ),
