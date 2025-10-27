@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/themes/app_theme.dart';
 import 'game_view.dart';
 
 class ScoreScreen extends StatelessWidget {
@@ -23,14 +24,21 @@ class ScoreScreen extends StatelessWidget {
           children: [
             const Text(
               'Game Over!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor,
+              ),
             ),
             const SizedBox(height: 20),
-            Text('Score: $finalScore', style: const TextStyle(fontSize: 20)),
+            Text(
+              'Score: $finalScore',
+              style: const TextStyle(fontSize: 20, color: AppTheme.textColor),
+            ),
             const SizedBox(height: 10),
             Text(
               'High Score: $highScore',
-              style: const TextStyle(fontSize: 20),
+              style: const TextStyle(fontSize: 20, color: AppTheme.textColor),
             ),
             const SizedBox(height: 20),
             Row(
@@ -41,8 +49,11 @@ class ScoreScreen extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            GameView(timeRestriction: timeRestriction, role: PlayerRole.singleplayer, lobbyId: ""),
+                        builder: (context) => GameView(
+                          timeRestriction: timeRestriction,
+                          role: PlayerRole.singleplayer,
+                          lobbyId: "",
+                        ),
                       ),
                     );
                   },

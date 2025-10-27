@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/home_screen.dart';
+import 'package:flutter_application_1/themes/app_theme.dart';
 import 'API.dart';
 
 // Firebase imports
@@ -34,7 +35,14 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Country Game',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: AppTheme.windowBase,
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppTheme.windowBase,
+          foregroundColor: AppTheme.lightPurple,
+        ),
+      ),
       home: const HomeScreen(),
     );
   }

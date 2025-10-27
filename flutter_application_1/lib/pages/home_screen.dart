@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/components/lobby.dart';
 import 'package:flutter_application_1/multiplayer/lobbyPage.dart';
+import 'package:flutter_application_1/themes/app_theme.dart';
 import './high_score.dart';
+import '../components/menu_btn.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
@@ -39,7 +41,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _start() => Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (context) => GameView(timeRestriction: _mode == 'timed', role: PlayerRole.singleplayer, lobbyId: ""),
+      builder: (context) => GameView(
+        timeRestriction: _mode == 'timed',
+        role: PlayerRole.singleplayer,
+        lobbyId: "",
+      ),
     ),
   );
 
@@ -50,16 +56,18 @@ class _HomeScreenState extends State<HomeScreen> {
     String lobbyId = uuid.v4().toString();
 
     db
-    .collection("lobbies")
-    .doc(lobbyId)
-    .set(lobby)
-    .onError((e, _) => print("Error writing document: $e"));
+        .collection("lobbies")
+        .doc(lobbyId)
+        .set(lobby)
+        .onError((e, _) => print("Error writing document: $e"));
 
     print("Lobby created with id: $lobbyId");
     // screenStatus = HomescreenStatus.lobbyAdmin;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => LobbyScreen(lobbyId: lobbyId, isHost: true)),
+      MaterialPageRoute(
+        builder: (context) => LobbyScreen(lobbyId: lobbyId, isHost: true),
+      ),
     );
   }
 
@@ -68,18 +76,20 @@ class _HomeScreenState extends State<HomeScreen> {
       final docRef = db.collection("lobbies").doc(lobbyId);
       docRef.get().then((DocumentSnapshot doc) {
         if (!doc.exists) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Lobby not found')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Lobby not found')));
           return;
         }
 
         final data = doc.data() as Map<String, dynamic>;
-        
+
         // Check if the lobby is in the right status to join
         if (data['status'] != 'lobby') {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('This lobby is not available to join')),
+            const SnackBar(
+              content: Text('This lobby is not available to join'),
+            ),
           );
           return;
         }
@@ -103,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => LobbyScreen(lobbyId: lobbyId, isHost: false,),
+            builder: (context) => LobbyScreen(lobbyId: lobbyId, isHost: false),
           ),
         );
       }, onError: (e) => print("Error getting document: $e"));
@@ -117,11 +127,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          'Highest Score: $_highest',
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        Expanded(
+          child: Container(
+            alignment: AlignmentGeometry.center,
+            child: Text(
+              'Highscore: $_highest',
+              style: AppTheme.highScoreTextStyle,
+            ),
+          ),
         ),
-        const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -138,20 +152,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.group),
-          label: const Text('Multiplayer'),
-          onPressed: () =>
-              setState(() => screenStatus = HomescreenStatus.multiplayer),
-          style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
-        ),
-        const SizedBox(height: 12),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.play_arrow),
-          label: const Text('Singleplayer'),
+        const SizedBox(height: 16),
+        MenuBtn(
           onPressed: _start,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
+          btnText: 'Singleplayer',
+          icon: Icon(Icons.play_arrow),
+        ),
+        const SizedBox(height: 24),
+        const Divider(color: AppTheme.liPuTransp),
+        const SizedBox(height: 24),
+        Expanded(
+          child: Container(
+            alignment: AlignmentGeometry.topCenter,
+            child: MenuBtn(
+              onPressed: () =>
+                  setState(() => screenStatus = HomescreenStatus.multiplayer),
+              btnText: 'Multiplayer',
+              icon: Icon(Icons.group),
+            ),
+          ),
         ),
       ],
     );
@@ -162,18 +181,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.add),
-          label: const Text('Create session'),
+        MenuBtn(
           onPressed: _createLobby,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
+          btnText: 'Create session',
+          icon: Icon(Icons.add),
         ),
         const SizedBox(height: 12),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.login),
-          label: const Text('Join session'),
+        MenuBtn(
           onPressed: () => _joinLobby(context),
-          style: ElevatedButton.styleFrom(minimumSize: const Size(200, 48)),
+          btnText: 'Join session',
+          icon: Icon(Icons.login),
         ),
       ],
     );
@@ -207,12 +224,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: screenStatus != HomescreenStatus.home 
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => setState(() => screenStatus = HomescreenStatus.home),
-            )
-          : null,
+        leading: screenStatus != HomescreenStatus.home
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () =>
+                    setState(() => screenStatus = HomescreenStatus.home),
+              )
+            : null,
         title: Text(
           (screenStatus == HomescreenStatus.home) ? 'Home' : 'Multiplayer',
         ),

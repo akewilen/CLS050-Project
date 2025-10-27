@@ -88,6 +88,7 @@ class _MapGameState extends State<MapGame> {
     }
 
     return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 146, 198, 241),
       body: Stack(
         //alignment: Alignment.center,
         children: [
