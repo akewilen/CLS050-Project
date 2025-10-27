@@ -86,7 +86,8 @@ class _ComparePageState extends State<ComparePage> {
           children: [
             // Round counter in top left
             Positioned(
-              left: 20,
+              left: 0.3 * MediaQuery.of(context).size.width,
+              width: 0.4 * MediaQuery.of(context).size.width,
               top: 20,
               child: Container(
                 padding: const EdgeInsets.all(8),

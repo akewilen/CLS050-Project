@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/API.dart';
 import 'package:flutter_application_1/components/lobby.dart';
+import 'package:flutter_application_1/components/quitbutton.dart';
+import 'package:flutter_application_1/pages/home_screen.dart';
 import 'package:flutter_application_1/multiplayer/firestoreClasses.dart';
 import 'package:flutter_application_1/pages/mulitplayer_scorescreen.dart';
 import '../GameLogic.dart';
@@ -249,9 +251,41 @@ class _GameViewState extends State<GameView> {
           );
           return;
         } else if (lobby.status == GameStatus.canceled.value) {
+          // Clean up all subscriptions and state
           _lobbySubscription?.cancel();
+          // Reset static game instance
+          _sharedGame = null;
+          // Reset current game state
+          currentGame = Game();
+          // Reset scores and timers
+
           if (!mounted) return;
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          
+          // Show popup about opponent leaving
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Game Over'),
+                content: const Text('You won! Your opponent left the game.'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HomeScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    child: const Text('Return to Home'),
+                  ),
+                ],
+              );
+            },
+          );
           return;
         }
 
@@ -337,6 +371,25 @@ class _GameViewState extends State<GameView> {
                     onTimeUp: _handleTimeUp,
                   ),
                 ),
+              QuitButton(
+                onQuitConfirmed: () {
+                  if (widget.role != PlayerRole.singleplayer) {
+                    // For multiplayer, update lobby status before quitting
+                    _lobbySubscription?.cancel();
+
+                    final docRef = db.collection("lobbies").doc(widget.lobbyId);
+                    docRef.update({
+                      'status': GameStatus.canceled.value,
+                    });
+                  }
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => const HomeScreen(),
+                    ),
+                    (route) => false,
+                  );
+                },
+              ),
             ],
           ),
         );
@@ -610,6 +663,16 @@ class _GameViewState extends State<GameView> {
               onTimeUp: _handleTimeUp,
             ),
           ),
+        QuitButton(
+          onQuitConfirmed: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const HomeScreen(),
+              ),
+              (route) => false,
+            );
+          },
+        ),
       ],
     );
   }
@@ -697,6 +760,23 @@ class _GameViewState extends State<GameView> {
                 onTimeUp: _handleTimeUp,
               ),
             ),
+          QuitButton(
+            onQuitConfirmed: () {
+              // Update lobby status to canceled before quitting
+              _lobbySubscription?.cancel();
+              final docRef = db.collection("lobbies").doc(widget.lobbyId);
+              docRef.update({
+                'status': GameStatus.canceled.value,
+              }).then((_) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const HomeScreen(),
+                  ),
+                  (route) => false,
+                );
+              });
+            },
+          ),
         ],
       );
     }
