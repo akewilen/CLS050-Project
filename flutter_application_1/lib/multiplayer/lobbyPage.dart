@@ -89,8 +89,14 @@ class _LobbyScreenState extends State<LobbyScreen> {
                   ? Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("You are in a lobby with id: ${lobby.id}"),
-                        Text(lobby.guestId == null ? "Waiting for a second player..." : "The game can be started."),
+                        Text(
+                          "You are in a lobby with id: ${lobby.id}",
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          lobby.guestId == null ? "Waiting for a second player..." : "The game can be started.",
+                          style: const TextStyle(color: Colors.white),
+                        ),
                         if (lobby.guestId != null)
                           ElevatedButton.icon(
                             icon: const Icon(Icons.play_arrow),
@@ -104,7 +110,10 @@ class _LobbyScreenState extends State<LobbyScreen> {
                           )
                       ],
                     )
-                  : const Text("Waiting for the host to start..."),
+                  : const Text(
+                      "Waiting for the host to start...",
+                      style: TextStyle(color: Colors.white),
+                    ),
               ),
               QuitButton(
                 onQuitConfirmed: () async {

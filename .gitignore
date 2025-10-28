@@ -1,1 +1,25 @@
 flutter_application_1/key.env
+flutter_application_1/lib/config.dart
+
+# Local environment files
+.env
+.env.local
+*.env
+
+# Build files that might contain API keys
+flutter_application_1/android/app/build
+flutter_application_1/android/app/release
+flutter_application_1/android/app/debug
+flutter_application_1/android/app/profile
+flutter_application_1/android/local.properties
+
+# Properties files that might contain secrets
+flutter_application_1/android/gradle.properties
+flutter_application_1/android/key.properties
+
+# Google Services (e.g. APIs or Firebase)
+flutter_application_1/android/app/google-services.json
+flutter_application_1/ios/Runner/GoogleService-Info.plist
+
+# Don't track Gradle wrapper jar file
+flutter_application_1/android/gradle/wrapper/gradle-wrapper.jar

@@ -1,0 +1,2 @@
+// Create a copy of this file named 'config.dart' and replace with your actual API key
+const String API_KEY = 'your-api-key-here';

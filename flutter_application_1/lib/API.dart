@@ -1,6 +1,6 @@
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'config.dart';
 
 String? _apiKey;
 
@@ -32,8 +32,7 @@ class CountryData {
 
 Future<void> loadEnv() async {
   try {
-    final content = await rootBundle.loadString('../key.env');
-    _apiKey = content.trim().substring(8); // Remove 'API_KEY=' prefix
+    _apiKey = API_KEY;
     print('Successfully loaded API key');
   } catch (e) {
     print('Error reading API key: $e');
