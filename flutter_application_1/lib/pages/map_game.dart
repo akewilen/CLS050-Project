@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/components/lives_remaining.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 import '../components/map_instruction.dart';
 
@@ -127,6 +128,11 @@ class _MapGameState extends State<MapGame> {
                 ],
               ),
             ],
+          ),
+          Positioned(
+            bottom: 80,
+            left: 0,
+            child: LivesRemaining(lives: 3 - wrongCounter),
           ),
           Positioned(
             bottom: 16,
