@@ -261,6 +261,8 @@ void showJoinLobbyDialog(BuildContext context, void Function(String) callback) {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   showDialog<String>(
+    barrierDismissible: false,
+    barrierColor: Colors.transparent,
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
