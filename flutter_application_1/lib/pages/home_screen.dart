@@ -5,10 +5,7 @@ import 'package:flutter_application_1/themes/app_theme.dart';
 import './high_score.dart';
 import '../components/menu_btn.dart';
 
-import 'package:firebase_core/firebase_core.dart';
-import '../firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 
 import 'game_view.dart';

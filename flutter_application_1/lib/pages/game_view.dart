@@ -5,7 +5,7 @@ import 'package:flutter_application_1/components/lobby.dart';
 import 'package:flutter_application_1/components/quitbutton.dart';
 import 'package:flutter_application_1/pages/home_screen.dart';
 import 'package:flutter_application_1/multiplayer/firestoreClasses.dart';
-import 'package:flutter_application_1/pages/mulitplayer_scorescreen.dart';
+import 'package:flutter_application_1/pages/multiplayer_scorescreen.dart';
 import '../GameLogic.dart';
 import '../components/timer_indicator.dart';
 import 'compare.dart';
