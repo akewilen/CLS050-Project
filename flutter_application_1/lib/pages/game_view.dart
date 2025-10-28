@@ -379,7 +379,7 @@ class _GameViewState extends State<GameView> {
                 wrongCallback: () {
                   _onWrong();
                 },
-                roundNumber: lobby.currentRound, //FIX: if not lobby
+                roundNumber: (widget.role == PlayerRole.singleplayer) ? currentGame.currentRoundIndex : lobby.currentRound,
               ),
               if (widget.timeRestriction)
                 Positioned(
