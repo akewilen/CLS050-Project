@@ -90,35 +90,40 @@ class _ComparePageState extends State<ComparePage> {
             Column(
               children: [
                 Expanded(
-                  flex: 48,
+                  flex: 70,
                   child: Container(
+                    alignment: AlignmentGeometry.bottomCenter,
+                    padding: EdgeInsets.only(bottom: 24, top: 108),
                     width: double.infinity,
                     color: AppTheme.window90,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            "${widget.topCountry.name}'s",
-                            style: AppTheme.countryNameTextStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                          Text(
-                            _getStatText(widget.compareField),
-                            style: AppTheme.statisticTypeTextStyle,
-                            textAlign: TextAlign.center,
-                          ),
-                          Text(
-                            _getStatValueText(
-                              widget.topCountry,
-                              widget.compareField,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Column(
+                          children: [
+                            Text(
+                              "${widget.topCountry.name}'s",
+                              style: AppTheme.countryNameTextStyle,
+                              textAlign: TextAlign.center,
                             ),
-                            style: AppTheme.statisticTextStyle,
-                            textAlign: TextAlign.center,
+                            Text(
+                              _getStatText(widget.compareField),
+                              style: AppTheme.statisticTypeTextStyle,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                        Text(
+                          _getStatValueText(
+                            widget.topCountry,
+                            widget.compareField,
                           ),
-                        ],
-                      ),
+                          style: AppTheme.statisticTextStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -126,17 +131,18 @@ class _ComparePageState extends State<ComparePage> {
                 const Expanded(flex: 1, child: SizedBox.shrink()),
 
                 Expanded(
-                  flex: 48,
+                  flex: 70,
                   child: Container(
+                    alignment: AlignmentGeometry.topCenter,
+                    padding: EdgeInsets.all(24),
                     width: double.infinity,
                     color: AppTheme.window90,
-                    padding: const EdgeInsets.all(8.0),
-                    child: Center(
-                      child: DefaultTextStyle.merge(
-                        style: AppTheme.statisticTypeTextStyle,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Column(
                           children: [
                             Text(
                               "${widget.bottomCountry.name}'s",
@@ -148,6 +154,10 @@ class _ComparePageState extends State<ComparePage> {
                               style: AppTheme.statisticTypeTextStyle,
                               textAlign: TextAlign.center,
                             ),
+                          ],
+                        ),
+                        Column(
+                          children: [
                             TextButton(
                               style: AppTheme.upperCompareButton,
                               onPressed: () {
@@ -185,7 +195,7 @@ class _ComparePageState extends State<ComparePage> {
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
@@ -193,11 +203,12 @@ class _ComparePageState extends State<ComparePage> {
             ),
             // Round counter in top left
             Positioned(
-              left: 0.3 * MediaQuery.of(context).size.width,
-              width: 0.4 * MediaQuery.of(context).size.width,
-              top: 20,
+              left: (0.75 * MediaQuery.of(context).size.width) / 2,
+              width: 0.25 * MediaQuery.of(context).size.width,
+              top: 22,
               child: Container(
                 padding: const EdgeInsets.all(8),
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppTheme.window90,
                   borderRadius: BorderRadius.circular(8),
@@ -206,7 +217,7 @@ class _ComparePageState extends State<ComparePage> {
                   builder: (context) {
                     return Text(
                       'Round ${widget.roundNumber}',
-                      style: AppTheme.countryNameTextStyle,
+                      style: TextStyle(fontSize: 16, color: AppTheme.textColor),
                     );
                   },
                 ),

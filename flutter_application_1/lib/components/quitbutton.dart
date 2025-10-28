@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../themes/app_theme.dart';
 
 class QuitButton extends StatelessWidget {
-  const QuitButton({
-    super.key,
-    required this.onQuitConfirmed,
-  });
+  const QuitButton({super.key, required this.onQuitConfirmed});
 
   /// Callback that will be called when the user confirms quitting
   final VoidCallback onQuitConfirmed;
@@ -29,9 +27,7 @@ class QuitButton extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop(true); // Confirm
               },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Quit'),
             ),
           ],
@@ -53,15 +49,16 @@ class QuitButton extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black,
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: AppTheme.windowBase,
+              blurRadius: 0.5,
+              offset: const Offset(0, 0),
+              spreadRadius: 0.2,
             ),
           ],
         ),
         child: IconButton(
           icon: const Icon(Icons.close),
-          color: Colors.black,
+          color: AppTheme.windowBase,
           iconSize: 24,
           onPressed: () async {
             final bool shouldQuit = await _showQuitConfirmation(context);

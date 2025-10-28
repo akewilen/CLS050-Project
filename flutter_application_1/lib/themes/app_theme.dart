@@ -49,11 +49,13 @@ class AppTheme {
 
   static final ButtonStyle upperCompareButton = ButtonStyle(
     backgroundColor: WidgetStateProperty.all(AppTheme.gold),
+    foregroundColor: WidgetStateProperty.all(AppTheme.windowBase),
     fixedSize: WidgetStateProperty.all<Size>(Size(200.0, 50.0)),
   );
 
   static final ButtonStyle lowerCompareButton = ButtonStyle(
-    backgroundColor: WidgetStateProperty.all(AppTheme.purple),
+    backgroundColor: WidgetStateProperty.all(AppTheme.lightPurple),
+    foregroundColor: WidgetStateProperty.all(AppTheme.windowBase),
     fixedSize: WidgetStateProperty.all<Size>(Size(200.0, 50.0)),
   );
 
