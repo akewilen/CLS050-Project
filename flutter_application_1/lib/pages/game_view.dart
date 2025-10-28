@@ -434,8 +434,6 @@ class _GameViewState extends State<GameView> {
       // Reset state for new round
       setState(() {
         _currentScore = 50;
-        //_selectedIndex = null;
-        //_hasSelectedCountry = false;
         _isMapTimerActive = true; // Restart timer for new round
       });
       return;
