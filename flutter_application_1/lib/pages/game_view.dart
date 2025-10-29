@@ -166,7 +166,7 @@ class _GameViewState extends State<GameView> {
         print("Advancing to round $newRoundIndex");
 
         // Check if this is the last round
-        if (newRoundIndex >= lobby.totalRounds - 1) {
+        if (newRoundIndex >= lobby.totalRounds + 1) {
           print("Final round completed - Game finished");
           // Game is finished, update lobby state
           final Map<String, dynamic> updateData = {
