@@ -17,7 +17,11 @@ class MapInstruction extends StatelessWidget {
         color: AppTheme.window90,
       ),
       child: Text(
-        style: TextStyle(color: Colors.white),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w100,
+        ),
         'Find: $hiddenCountry',
       ),
     );

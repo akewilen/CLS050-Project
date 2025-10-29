@@ -38,6 +38,18 @@ class AppTheme {
     //minimumSize: const Size(200, 48);
   );
 
+  static final ButtonStyle primaryMenuBtn = ButtonStyle(
+    backgroundColor: WidgetStateProperty.all(AppTheme.btnGold),
+    fixedSize: WidgetStateProperty.all<Size>(Size(150.0, 48.0)),
+    //minimumSize: const Size(200, 48);
+  );
+
+  static final ButtonStyle secondaryMenuBtn = ButtonStyle(
+    backgroundColor: WidgetStateProperty.all(AppTheme.textColor),
+    fixedSize: WidgetStateProperty.all<Size>(Size(110.0, 48.0)),
+    //minimumSize: const Size(200, 48);
+  );
+
   /*
   static late ButtonStyle menuBtnn(Icon icon) => ElevatedButton.icon(
     icon: const Icon(icon),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/themes/app_theme.dart';
+import '../components/menu_btn.dart';
 import 'game_view.dart';
 
 class ScoreScreen extends StatelessWidget {
@@ -30,20 +31,29 @@ class ScoreScreen extends StatelessWidget {
                 color: AppTheme.textColor,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             Text(
               'Score: $finalScore',
-              style: const TextStyle(fontSize: 20, color: AppTheme.textColor),
+              style: const TextStyle(fontSize: 16, color: AppTheme.textColor),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               'High Score: $highScore',
-              style: const TextStyle(fontSize: 20, color: AppTheme.textColor),
+              style: const TextStyle(fontSize: 16, color: AppTheme.textColor),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.home),
+                  label: const Text('Home'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: AppTheme.secondaryMenuBtn,
+                ),
+                const SizedBox(width: 20),
                 ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pushReplacement(
@@ -57,24 +67,9 @@ class ScoreScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.refresh),
                   label: const Text('Play Again'),
-                ),
-                const SizedBox(width: 20),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    /*
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
-                      ),
-                    );
-                  */
-                  },
-                  icon: const Icon(Icons.home),
-                  label: const Text('Home'),
+                  icon: const Icon(Icons.refresh),
+                  style: AppTheme.primaryMenuBtn,
                 ),
               ],
             ),
